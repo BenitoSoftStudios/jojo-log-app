@@ -36,9 +36,9 @@ Check this list by running both the HTML app and the Vue app side by side on the
 - [ ] New Entry time does not automatically roll into the next calendar day
 - [ ] New Entry prefills amount if Weekly Usual Bottle Amount is set for the current week
 - [ ] New Entry leaves amount blank if Weekly Usual Bottle Amount is not set
-- [ ] New Entry starts with blank diaper, Vitamin D off, Medication off, notes empty
+- [ ] New Entry starts with blank diaper, Vitamin D off, Medication off, Tummy Time off, notes empty
+- [ ] Start Next Day / + Day is a global action (header or hamburger menu), not a per-day button
 - [ ] Start Next Day creates the next calendar date and one starter Entry
-- [ ] Start Next Day does not appear in the Open Day; it creates a new Day
 
 ---
 
@@ -49,10 +49,12 @@ Check this list by running both the HTML app and the Vue app side by side on the
 - [ ] Blank amount marks the Entry as Incomplete
 - [ ] Blank diaper marks the Entry as Incomplete
 - [ ] Incomplete Entries show a visible warning in the Day row
-- [ ] Vitamin D toggle works (on/off)
-- [ ] Medication toggle works (on/off)
-- [ ] Notes field accepts free text
-- [ ] Vitamin D and Medication state do not affect completion status
+- [ ] Vitamin D toggle works (on/off), displays ☀ symbol when on
+- [ ] Medication toggle works (on/off), displays Rx symbol when on
+- [ ] Tummy Time toggle works (on/off), displays ★ symbol when on
+- [ ] Notes field accepts free text; notes are added and edited in the Entry Detail Sheet, not inline on the row
+- [ ] Notes save automatically on blur or with debounce via `updateEntry({ notes })`
+- [ ] Vitamin D, Medication, and Tummy Time state do not affect completion status
 
 ---
 
@@ -66,7 +68,7 @@ Check this list by running both the HTML app and the Vue app side by side on the
 - [ ] Deleted Entries disappear from graphs
 - [ ] Deleted Entries disappear from totals
 - [ ] Deleted Entries disappear from normal CSV export
-- [ ] Owner can restore a deleted Entry from Recently Deleted
+- [ ] Only Owners can restore a deleted Entry from Recently Deleted (non-owner caregivers cannot)
 - [ ] Restored Entry reappears in the main Care Ledger
 - [ ] `updatedByLabel` is set correctly on edit
 
@@ -80,6 +82,7 @@ Check this list by running both the HTML app and the Vue app side by side on the
 - [ ] Week Segments collapse and expand
 - [ ] Days collapse and expand
 - [ ] The most recent Month, Week Segment, and Day are open by default
+- [ ] Multiple Days can be open at the same time
 - [ ] A week that crosses a month boundary appears under both months as separate Week Segments
 - [ ] Month totals are true calendar-month totals (not partial-week totals)
 - [ ] Week Segment shows only the portion of that week within the month
@@ -154,12 +157,17 @@ Check this list by running both the HTML app and the Vue app side by side on the
 
 ## Row details
 
-- [ ] Tapping an Entry opens a detail view or sheet
-- [ ] Detail view shows: time, amount, diaper, Vitamin D, Medication, notes
-- [ ] Detail view shows: Created by, Created at
-- [ ] Detail view shows: Updated by, Updated at (if edited)
-- [ ] Detail view offers Edit and Delete options based on role
-- [ ] Detail view does not require swipe as the only access method
+- [ ] Each Entry row has a visible details button (i, ⋯, chevron, or initials chip) — not swipe or long-press
+- [ ] Tapping the details button opens the Entry Detail Sheet
+- [ ] Detail Sheet shows: time, amount, diaper, Vitamin D (☀), Medication (Rx), Tummy Time (★)
+- [ ] Detail Sheet shows an editable notes textarea (add, edit, or clear notes from here)
+- [ ] Notes save on blur or with debounce — no separate Save button for notes
+- [ ] Detail Sheet shows: Created by, Created at
+- [ ] Detail Sheet shows: Updated by, Updated at (if edited)
+- [ ] Detail Sheet shows source label "Legacy entry" for migrated entries
+- [ ] Delete action is in the Detail Sheet (with confirmation step)
+- [ ] Core fields (time, mL, diaper, vitaminD, medication, tummyTime) are edited inline on the row, not in the Detail Sheet
+- [ ] Detail Sheet is not a general edit form
 
 ---
 
@@ -175,7 +183,8 @@ Check this list by running both the HTML app and the Vue app side by side on the
 ## Recently Deleted
 
 - [ ] Recently Deleted screen lists all soft-deleted Entries for the active Baby
-- [ ] Owner can restore any Entry from Recently Deleted
+- [ ] All members can view the Recently Deleted list
+- [ ] Only Owners can restore an Entry from Recently Deleted
 - [ ] Restored Entry reappears in the Care Ledger at the correct date
 
 ---
@@ -183,8 +192,8 @@ Check this list by running both the HTML app and the Vue app side by side on the
 ## Legend and Help
 
 - [ ] Legend is accessible from the main screen
-- [ ] Legend explains: W, P, WP, -, Vitamin D indicator, Medication indicator, incomplete row indicator
-- [ ] Legend explains New Entry vs Start Next Day
+- [ ] Legend explains: W, P, WP, -, Vitamin D (☀), Medication (Rx), Tummy Time (★), incomplete row indicator
+- [ ] Legend explains New Entry and + Day / Start Next Day
 - [ ] Legend explains sync status dots
 
 ---
