@@ -22,7 +22,7 @@ export function isCompletedFeed(entry) {
  * - time = lastEntry.entryTime + baby.defaultNextEntryIntervalMinutes
  * - time is capped so it never crosses into the next calendar date
  * - amount = weeklySettings.usualBottleAmountMl if set, else null
- * - diaper, vitaminD, medication, notes all blank/default
+ * - diaper, vitaminD, medication, tummyTime, notes all blank/default
  */
 export function buildNewEntryDefaults(lastEntry, baby, weeklySettings) {
   const intervalMinutes = baby?.defaultNextEntryIntervalMinutes ?? 180
@@ -46,6 +46,7 @@ export function buildNewEntryDefaults(lastEntry, baby, weeklySettings) {
     diaper:     null,
     vitaminD:   false,
     medication: false,
+    tummyTime:  false,
     notes:      ''
   }
 }
@@ -67,6 +68,7 @@ export function buildStartNextDayEntry(lastEntryDate, baby) {
       diaper:     null,
       vitaminD:   false,
       medication: false,
+      tummyTime:  false,
       notes:      ''
     }
   }

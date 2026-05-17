@@ -25,6 +25,7 @@ function makeEntry(id, overrides) {
     diaper:          'W',
     vitaminD:        false,
     medication:      false,
+    tummyTime:       false,
     notes:           '',
     source:          'app',
     createdByUserId: 'uid-test',
@@ -96,6 +97,10 @@ export const LEGACY_ENTRY = makeEntry('e016', {
   updatedByLabel:  null,
 })
 
+// ── Tummy Time entry (2026-02-16, Mon) ──────────────────────────────────────
+// tummyTime: true — complete entry, no effect on completion or mL totals
+export const TUMMY_TIME_ENTRY = makeEntry('e020', { entryDate: '2026-02-16', entryTime: '11:00', amountMl: 95, diaper: 'W', tummyTime: true })
+
 // ── Same-day multiple entries (2026-01-15, Thu) ──────────────────────────────
 // Must sort ascending by entryTime: A (06:00) → B (09:00) → C (12:00)
 export const SAME_DAY_A = makeEntry('e017', { entryDate: '2026-01-15', entryTime: '06:00', amountMl: 90,  diaper: 'W' })
@@ -108,7 +113,7 @@ export const ALL_ENTRIES = [
   INCOMPLETE_NO_ML, INCOMPLETE_NO_DIAPER, INCOMPLETE_BOTH_NULL,
   VITAMIND_ENTRY, MEDICATION_ZERO_ML, NOTES_ENTRY, DELETED_ENTRY,
   CROSS_MONTH_JAN, CROSS_MONTH_FEB, CROSS_YEAR_DEC, CROSS_YEAR_JAN,
-  LEGACY_ENTRY, SAME_DAY_A, SAME_DAY_B, SAME_DAY_C,
+  LEGACY_ENTRY, TUMMY_TIME_ENTRY, SAME_DAY_A, SAME_DAY_B, SAME_DAY_C,
 ]
 
 export const ACTIVE_ENTRIES = ALL_ENTRIES.filter(e => !e.deleted)

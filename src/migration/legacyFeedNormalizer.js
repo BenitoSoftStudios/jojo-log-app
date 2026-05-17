@@ -44,6 +44,7 @@ export function normalizeLegacyFeedToEntry(feedDoc) {
       diaper:          normalizeDiaper(feedDoc.diaper),
       vitaminD:        feedDoc.vitd === 1,
       medication:      false,
+      tummyTime:       false,
       notes:           feedDoc.notes ?? '',
       source:          'legacy',
       createdByUserId: null,
@@ -81,6 +82,9 @@ export function validateNormalizedEntry(entry) {
   }
   if (entry.diaper !== null && !VALID_DIAPER_VALUES.has(entry.diaper)) {
     errors.push(`diaper value "${entry.diaper}" is not valid; expected W, P, WP, -, or null`)
+  }
+  if (typeof entry.tummyTime !== 'boolean') {
+    errors.push('tummyTime must be a boolean')
   }
   if (entry.source !== 'legacy') {
     errors.push('source must be "legacy"')

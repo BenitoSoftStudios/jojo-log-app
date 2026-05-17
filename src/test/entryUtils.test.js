@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { isIncomplete, isCompletedFeed } from '@/utils/entryUtils.js'
+import { isIncomplete, isCompletedFeed, buildNewEntryDefaults, buildStartNextDayEntry } from '@/utils/entryUtils.js'
 
 describe('isIncomplete', () => {
   it('returns true when amountMl is null', () => {
@@ -58,5 +58,52 @@ describe('isCompletedFeed', () => {
 
   it('returns false for undefined amountMl', () => {
     expect(isCompletedFeed({ amountMl: undefined, deleted: false })).toBe(false)
+  })
+})
+
+// ── tummyTime — completion and feed count ────────────────────────────────────
+
+describe('tummyTime does not affect completion or feed count', () => {
+  it('isIncomplete returns false when tummyTime is true and mL/diaper are set', () => {
+    expect(isIncomplete({ amountMl: 90, diaper: 'W', tummyTime: true })).toBe(false)
+  })
+
+  it('isIncomplete still returns true when amountMl is null regardless of tummyTime', () => {
+    expect(isIncomplete({ amountMl: null, diaper: 'W', tummyTime: true })).toBe(true)
+  })
+
+  it('isIncomplete still returns true when diaper is null regardless of tummyTime', () => {
+    expect(isIncomplete({ amountMl: 90, diaper: null, tummyTime: true })).toBe(true)
+  })
+
+  it('isCompletedFeed returns true when tummyTime is true and amountMl > 0', () => {
+    expect(isCompletedFeed({ amountMl: 90, deleted: false, tummyTime: true })).toBe(true)
+  })
+
+  it('isCompletedFeed returns false when tummyTime is true but amountMl is 0', () => {
+    expect(isCompletedFeed({ amountMl: 0, deleted: false, tummyTime: true })).toBe(false)
+  })
+})
+
+// ── buildNewEntryDefaults — tummyTime ────────────────────────────────────────
+
+describe('buildNewEntryDefaults — tummyTime', () => {
+  it('includes tummyTime: false in defaults', () => {
+    const defaults = buildNewEntryDefaults(null, null, null)
+    expect(defaults.tummyTime).toBe(false)
+  })
+
+  it('includes tummyTime: false when a lastEntry is provided', () => {
+    const defaults = buildNewEntryDefaults({ entryTime: '08:00' }, null, null)
+    expect(defaults.tummyTime).toBe(false)
+  })
+})
+
+// ── buildStartNextDayEntry — tummyTime ───────────────────────────────────────
+
+describe('buildStartNextDayEntry — tummyTime', () => {
+  it('includes tummyTime: false in entryFields', () => {
+    const result = buildStartNextDayEntry('2026-03-15', null)
+    expect(result.entryFields.tummyTime).toBe(false)
   })
 })

@@ -63,6 +63,7 @@ describe('normalizeLegacyFeedToEntry — provenance', () => {
   it('sets createdByLabel to "Legacy"',  () => expect(normalized().data.createdByLabel).toBe('Legacy'))
   it('sets createdByUserId to null',     () => expect(normalized().data.createdByUserId).toBeNull())
   it('sets medication to false',         () => expect(normalized().data.medication).toBe(false))
+  it('sets tummyTime to false',          () => expect(normalized().data.tummyTime).toBe(false))
   it('sets deleted to false',            () => expect(normalized().data.deleted).toBe(false))
   it('sets updatedAt to null',           () => expect(normalized().data.updatedAt).toBeNull())
   it('sets updatedByUserId to null',     () => expect(normalized().data.updatedByUserId).toBeNull())
@@ -130,6 +131,17 @@ describe('validateNormalizedEntry', () => {
   it('reports error when source is not "legacy"', () => {
     const result = validateNormalizedEntry({ ...normalized(), source: 'app' })
     expect(result.valid).toBe(false)
+  })
+
+  it('reports error when tummyTime is not a boolean', () => {
+    const result = validateNormalizedEntry({ ...normalized(), tummyTime: 0 })
+    expect(result.valid).toBe(false)
+    expect(result.errors.length).toBeGreaterThan(0)
+  })
+
+  it('returns valid when tummyTime is false (legacy default)', () => {
+    const result = validateNormalizedEntry({ ...normalized(), tummyTime: false })
+    expect(result.valid).toBe(true)
   })
 })
 

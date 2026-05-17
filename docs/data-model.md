@@ -80,6 +80,7 @@ Each Entry is its own document. Document ID is a client-generated ID (e.g. `Date
   diaper: "W" | "P" | "WP" | "-" | null, // null = blank/incomplete; "-" is valid
   vitaminD: boolean,                   // default false
   medication: boolean,                 // default false; details go in notes
+  tummyTime: boolean,                  // default false; added in Phase 5.5
   notes: string,                       // default ""
   createdByUserId: string | null,      // null for Legacy Entries
   createdByLabel: string,              // display label at time of creation; "Legacy" for migrated rows
@@ -98,7 +99,7 @@ Each Entry is its own document. Document ID is a client-generated ID (e.g. `Date
 **Completion rule**
 - An Entry is Incomplete if `amountMl === null` OR `diaper === null`.
 - An Entry is Complete if `amountMl` has any value (including `0`) AND `diaper` has any value (including `"-"`).
-- `vitaminD`, `medication`, and `notes` never affect completion status.
+- `vitaminD`, `medication`, `tummyTime`, and `notes` never affect completion status.
 
 **Feed total rule**
 - Feed totals and feed count include only Entries where `amountMl > 0` AND `deleted === false`.
