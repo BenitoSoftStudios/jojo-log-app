@@ -40,6 +40,7 @@ export function useFamily() {
       _currentMember.value = memberData
       return fId
     } catch (e) {
+      console.error('[useFamily] loadFamily failed | code:', e.code, '| message:', e.message, e)
       _error.value = e.message
       return null
     } finally {

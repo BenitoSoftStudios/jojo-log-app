@@ -36,8 +36,6 @@ export function useAuth() {
 
   async function signOut() {
     await firebaseSignOut(auth)
-    localStorage.removeItem('jojo_familyId')
-    localStorage.removeItem('jojo_babyId')
   }
 
   return { currentUser, authReady, isSignedIn, signUp, signIn, signOut }

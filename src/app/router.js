@@ -114,21 +114,52 @@ router.beforeEach(async (to) => {
   if (to.meta.isSetupRoute) return true
 
   // 5. All remaining protected routes require a family + display label.
-  //    Check localStorage first to avoid a Firestore round-trip on every navigation.
+  //    localStorage is a convenience cache only — Firestore is the source of truth.
   let familyId = localStorage.getItem('jojo_familyId')
-  if (!familyId) {
+
+  if (familyId) {
+    // Fast path: validate the cached id belongs to this user before trusting it.
     try {
-      familyId = await findFamilyIdForUser(user.uid)
-      if (familyId) localStorage.setItem('jojo_familyId', familyId)
-    } catch {
-      // Collection group index may not be deployed yet — fall through to setup
+      const member = await getMember(familyId, user.uid)
+      if (member?.displayLabel) return true
+    } catch (e) {
+      console.error(
+        '[router] getMember failed for cached familyId:', familyId,
+        '| code:', e.code, '| message:', e.message, e
+      )
     }
+    // Cache is stale, wrong user, or lookup failed — discard and fall through to discovery.
+    localStorage.removeItem('jojo_familyId')
+    familyId = null
+  }
+
+  // Discovery: collection group query across all members sub-collections.
+  // REQUIRES the Firestore index defined in firestore.indexes.json.
+  // If this throws, deploy it with: firebase deploy --only firestore:indexes
+  try {
+    familyId = await findFamilyIdForUser(user.uid)
+    if (familyId) localStorage.setItem('jojo_familyId', familyId)
+  } catch (e) {
+    console.error(
+      '[router] findFamilyIdForUser failed.',
+      'If you see a "requires an index" message, deploy with: firebase deploy --only firestore:indexes',
+      '| code:', e.code, '| message:', e.message, e
+    )
+    // familyId stays null — falls through to /setup-profile below.
   }
 
   if (!familyId) return '/setup-profile'
 
-  const member = await getMember(familyId, user.uid)
-  if (!member?.displayLabel) return '/setup-profile'
+  try {
+    const member = await getMember(familyId, user.uid)
+    if (!member?.displayLabel) return '/setup-profile'
+  } catch (e) {
+    console.error(
+      '[router] getMember failed after discovery, familyId:', familyId,
+      '| code:', e.code, '| message:', e.message, e
+    )
+    return '/setup-profile'
+  }
 
   return true
 })

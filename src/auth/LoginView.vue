@@ -24,6 +24,7 @@
           <label class="field-label" for="email">Email</label>
           <input
             id="email"
+            ref="emailInput"
             v-model="email"
             type="email"
             class="field-input"
@@ -37,6 +38,7 @@
           <label class="field-label" for="password">Password</label>
           <input
             id="password"
+            ref="passwordInput"
             v-model="password"
             type="password"
             class="field-input"
@@ -73,24 +75,30 @@ import { useAuth } from '@/auth/useAuth.js'
 const router = useRouter()
 const { signIn, signUp } = useAuth()
 
-const mode     = ref('signin')
-const email    = ref('')
-const password = ref('')
-const loading  = ref(false)
-const error    = ref('')
+const mode          = ref('signin')
+const email         = ref('')
+const password      = ref('')
+const emailInput    = ref(null)
+const passwordInput = ref(null)
+const loading       = ref(false)
+const error         = ref('')
 
 async function handleSubmit() {
   error.value   = ''
   loading.value = true
+  // Mobile autofill sets DOM value without triggering v-model; read DOM as source of truth.
+  const emailVal = (emailInput.value?.value ?? email.value).trim()
+  const passVal  = passwordInput.value?.value ?? password.value
   try {
     if (mode.value === 'signup') {
-      await signUp(email.value, password.value)
+      await signUp(emailVal, passVal)
     } else {
-      await signIn(email.value, password.value)
+      await signIn(emailVal, passVal)
     }
     // Router guard handles all subsequent redirects (setup-profile, family-setup, or ledger)
     await router.push('/')
   } catch (e) {
+    console.error('[LoginView] auth error | code:', e.code, '| message:', e.message, e)
     error.value = friendlyError(e.code)
   } finally {
     loading.value = false

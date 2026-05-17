@@ -101,6 +101,7 @@ async function handleSubmit() {
       await router.push('/family-setup')
     }
   } catch (e) {
+    console.error('[SetupProfileView] save failed | code:', e.code, '| message:', e.message, e)
     error.value = 'Could not save your display label. Please try again.'
   } finally {
     loading.value = false
