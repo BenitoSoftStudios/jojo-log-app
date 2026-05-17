@@ -72,4 +72,10 @@
   --header-height:   56px;
   --max-width:       480px;  /* mobile-first; centred on wider screens */
   --bottom-bar-height: 72px;
+
+  /* ── Ledger row hierarchy colours ───────────── */
+  --color-row-month: var(--color-surface-alt);  /* warm off-white — month headers */
+  --color-row-week:  var(--color-mint-soft);    /* mint teal — week segment headers */
+  --color-row-day:   var(--color-sand-soft);    /* sand beige — day headers */
+  --color-row-entry: var(--color-surface);      /* white — individual entry rows */
 }

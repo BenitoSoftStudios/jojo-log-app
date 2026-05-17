@@ -1,6 +1,7 @@
 <!-- Care Ledger — main screen.
      Phase 3: loads real family + baby context from composables.
-     Phase 4: live entry subscription + smoke-test CRUD panel. -->
+     Phase 4: live entry subscription + CRUD service layer.
+     Phase 6: native-first ledger UI — Month › Week › Day › Entry hierarchy. -->
 <template>
   <AppLayout>
     <template #header>
@@ -10,6 +11,9 @@
         @select="selectBaby"
       />
       <SyncStatus :status="syncStatus" />
+      <button class="header-day-btn" type="button" title="Start next day" @click="handleStartNextDay">
+        + Day
+      </button>
       <button class="menu-btn" aria-label="Menu" @click="menuOpen = true">☰</button>
     </template>
 
@@ -26,38 +30,44 @@
       </div>
 
       <SummaryChips
-        :today-ml="0"
-        :seven-day-ml="0"
-        :month-ml="0"
-        :feed-count="0"
+        :today-ml="stats.todayMl"
+        :seven-day-ml="stats.sevenDayMl"
+        :month-ml="stats.monthMl"
+        :feed-count="stats.feedCount"
       />
 
-      <!-- Phase 4 smoke-test panel -->
-      <div class="smoke-panel">
-        <div class="smoke-counts text-sm">
-          <span>Active: <strong>{{ entries.length }}</strong></span>
-          <span>Deleted: <strong>{{ deletedEntries.length }}</strong></span>
-        </div>
-
-        <div class="smoke-actions">
-          <button class="smoke-btn" @click="handleCreate">+ Create test entry</button>
-          <button class="smoke-btn" :disabled="!entries[0]" @click="handleUpdate">Edit first notes</button>
-          <button class="smoke-btn smoke-btn--danger" :disabled="!entries[0]" @click="handleDelete">Soft-delete first</button>
-          <button class="smoke-btn" :disabled="!deletedEntries[0]" @click="handleRestore">Restore first deleted</button>
-        </div>
-
-        <p v-if="feedback" class="smoke-feedback text-sm">{{ feedback }}</p>
-
-        <ul class="smoke-list">
-          <li v-for="entry in entries" :key="entry.id" class="smoke-entry text-sm">
-            <span class="smoke-date">{{ entry.entryDate }} {{ entry.entryTime }}</span>
-            <span>{{ entry.amountMl ?? '—' }} mL</span>
-            <span>diaper: {{ entry.diaper ?? '—' }}</span>
-            <span class="smoke-author text-faint">{{ entry.createdByLabel }}</span>
-          </li>
-        </ul>
+      <!-- Ledger hierarchy -->
+      <div v-if="grouped.months.length === 0" class="ledger-empty">
+        <p class="text-faint text-sm">
+          No entries yet.<br />
+          Tap <strong>+ Day</strong> to create the first entry.
+        </p>
+      </div>
+      <div v-else class="ledger">
+        <CareMonth
+          v-for="month in grouped.months"
+          :key="month.monthKey"
+          :month="month"
+          :open-months="openMonths"
+          :open-week-keys="openWeekKeys"
+          :open-days="openDays"
+          @toggle-month="toggleMonth"
+          @toggle-week="(mk, ws) => toggleWeek(mk, ws)"
+          @toggle-day="toggleDay"
+          @add-entry="handleAddEntry"
+          @update-entry="handleUpdateEntry"
+          @open-detail="handleOpenDetail"
+        />
       </div>
     </template>
+
+    <!-- Entry Detail Sheet -->
+    <EntryDetailSheet
+      v-model="detailSheetOpen"
+      :entry="detailEntry"
+      @save-notes="handleSaveNotes"
+      @delete="handleDeleteEntry"
+    />
 
     <!-- Hamburger menu sheet -->
     <AppSheet v-model="menuOpen" title="Menu">
@@ -76,27 +86,45 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import AppLayout    from '@/ui/AppLayout.vue'
-import AppSheet     from '@/ui/AppSheet.vue'
-import BabySwitcher from '@/babies/BabySwitcher.vue'
-import SyncStatus   from '@/ui/SyncStatus.vue'
-import SummaryChips from '@/entries/SummaryChips.vue'
+import AppLayout        from '@/ui/AppLayout.vue'
+import AppSheet         from '@/ui/AppSheet.vue'
+import BabySwitcher     from '@/babies/BabySwitcher.vue'
+import SyncStatus       from '@/ui/SyncStatus.vue'
+import SummaryChips     from '@/entries/SummaryChips.vue'
+import CareMonth        from '@/entries/CareMonth.vue'
+import EntryDetailSheet from '@/entries/EntryDetailSheet.vue'
 import { useAuth }    from '@/auth/useAuth.js'
 import { useFamily }  from '@/families/useFamily.js'
 import { useBabies }  from '@/babies/useBabies.js'
 import { useEntries } from '@/entries/useEntries.js'
+import { useLedger }  from '@/entries/useLedger.js'
+import { buildNewEntryDefaults, buildStartNextDayEntry } from '@/utils/entryUtils.js'
 import { todayString } from '@/utils/dateUtils.js'
 
 const router = useRouter()
-const { currentUser, signOut }                                                     = useAuth()
-const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily }    = useFamily()
-const { activeBabies, activeBabyId, loading: babiesLoading, loadBabies, selectBaby } = useBabies()
-const { entries, deletedEntries, syncStatus, createEntry, updateEntry, softDeleteEntry, restoreEntry } = useEntries()
 
-const menuOpen = ref(false)
-const feedback = ref('')
+const { currentUser, signOut }                                                             = useAuth()
+const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily }            = useFamily()
+const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies, selectBaby } = useBabies()
+const { entries, syncStatus, createEntry, updateEntry, softDeleteEntry }                   = useEntries()
+const { grouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
+        toggleMonth, toggleWeek, toggleDay, openDay }                                      = useLedger()
+
+const menuOpen        = ref(false)
+const detailSheetOpen = ref(false)
+const detailEntryId   = ref(null)
+
+// Always reflect the latest version of the entry from the live list.
+const detailEntry = computed(() =>
+  entries.value.find(e => e.id === detailEntryId.value) ?? null
+)
+
+// Close sheet if the entry is deleted while open.
+watch(detailEntry, (e) => {
+  if (!e && detailSheetOpen.value) detailSheetOpen.value = false
+})
 
 onMounted(async () => {
   if (!familyId.value && currentUser.value) {
@@ -107,57 +135,87 @@ onMounted(async () => {
   }
 })
 
-function setFeedback(msg) {
-  feedback.value = msg
-  setTimeout(() => { feedback.value = '' }, 3000)
-}
+// ── Entry actions ──────────────────────────────────────────────────────────────
 
-async function handleCreate() {
-  const now = new Date()
-  const hh  = String(now.getHours()).padStart(2, '0')
-  const mm  = String(now.getMinutes()).padStart(2, '0')
+async function handleAddEntry(day) {
+  const lastEntry = day.entries[day.entries.length - 1] ?? null
+  const defaults  = buildNewEntryDefaults(lastEntry, activeBaby.value, null)
   try {
-    await createEntry({ entryDate: todayString(), entryTime: `${hh}:${mm}`, amountMl: 90, diaper: null })
-    setFeedback('Test entry created')
+    await createEntry({
+      entryDate:  day.date,
+      entryTime:  defaults.entryTime,
+      amountMl:   defaults.amountMl,
+      diaper:     defaults.diaper,
+      vitaminD:   defaults.vitaminD,
+      medication: defaults.medication,
+      tummyTime:  false,
+      notes:      '',
+    })
   } catch (e) {
-    console.error('[CareLedgerView] createEntry failed | code:', e.code, '| message:', e.message, e)
-    setFeedback('Create failed — see console')
+    console.error('[CareLedgerView] createEntry failed', e)
   }
 }
 
-async function handleUpdate() {
-  const entry = entries.value[0]
-  if (!entry) return
+async function handleStartNextDay() {
+  const mrd = mostRecentDate.value
+  let newDate
+  let entryFields
+
+  if (!mrd) {
+    // No entries yet — create the first entry for today.
+    const defaults = buildNewEntryDefaults(null, activeBaby.value, null)
+    newDate     = todayString()
+    entryFields = {
+      entryTime:  defaults.entryTime,
+      amountMl:   null,
+      diaper:     null,
+      vitaminD:   false,
+      medication: false,
+      tummyTime:  false,
+      notes:      '',
+    }
+  } else {
+    // Always advance to the next calendar day after the most recent ledger date.
+    const result = buildStartNextDayEntry(mrd, activeBaby.value)
+    newDate      = result.date
+    entryFields  = result.entryFields
+  }
+
   try {
-    await updateEntry(entry.id, { notes: `Smoke-tested at ${new Date().toLocaleTimeString()}` })
-    setFeedback(`Updated ${entry.id.slice(-6)}`)
+    await createEntry({ entryDate: newDate, ...entryFields })
+    openDay(newDate)
   } catch (e) {
-    console.error('[CareLedgerView] updateEntry failed | code:', e.code, '| message:', e.message, e)
-    setFeedback('Update failed — see console')
+    console.error('[CareLedgerView] createEntry (+ Day) failed', e)
   }
 }
 
-async function handleDelete() {
-  const entry = entries.value[0]
-  if (!entry) return
+async function handleUpdateEntry(entryId, changes) {
   try {
-    await softDeleteEntry(entry.id)
-    setFeedback(`Deleted ${entry.id.slice(-6)}`)
+    await updateEntry(entryId, changes)
   } catch (e) {
-    console.error('[CareLedgerView] softDeleteEntry failed | code:', e.code, '| message:', e.message, e)
-    setFeedback('Delete failed — see console')
+    console.error('[CareLedgerView] updateEntry failed', e)
   }
 }
 
-async function handleRestore() {
-  const entry = deletedEntries.value[0]
-  if (!entry) return
+function handleOpenDetail(entry) {
+  detailEntryId.value   = entry.id
+  detailSheetOpen.value = true
+}
+
+async function handleSaveNotes(entryId, notes) {
   try {
-    await restoreEntry(entry.id)
-    setFeedback(`Restored ${entry.id.slice(-6)}`)
+    await updateEntry(entryId, { notes })
   } catch (e) {
-    console.error('[CareLedgerView] restoreEntry failed | code:', e.code, '| message:', e.message, e)
-    setFeedback('Restore failed — see console')
+    console.error('[CareLedgerView] notes save failed', e)
+  }
+}
+
+async function handleDeleteEntry(entryId) {
+  try {
+    await softDeleteEntry(entryId)
+    detailSheetOpen.value = false
+  } catch (e) {
+    console.error('[CareLedgerView] softDeleteEntry failed', e)
   }
 }
 
@@ -179,6 +237,26 @@ async function handleSignOut() {
   margin-bottom: var(--space-2);
 }
 
+.header-day-btn {
+  background: none;
+  border: 1.5px solid var(--color-mint);
+  border-radius: var(--radius-md);
+  color: var(--color-mint);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-1) var(--space-3);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-height: 36px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.header-day-btn:active {
+  background: var(--color-mint-soft);
+}
+
 .menu-btn {
   background: none;
   border: none;
@@ -192,74 +270,19 @@ async function handleSignOut() {
   -webkit-tap-highlight-color: transparent;
 }
 
-.smoke-panel {
-  margin-top: var(--space-4);
-  padding: var(--space-4);
+.ledger-empty {
+  margin-top: var(--space-8);
+  text-align: center;
+  padding: var(--space-8);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
 }
 
-.smoke-counts {
-  display: flex;
-  gap: var(--space-4);
-  color: var(--color-text-soft);
-}
-
-.smoke-actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.smoke-btn {
-  background: var(--color-surface);
+.ledger {
+  margin-top: var(--space-2);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  cursor: pointer;
-}
-
-.smoke-btn:disabled {
-  opacity: 0.4;
-  cursor: default;
-}
-
-.smoke-btn--danger {
-  color: var(--color-error);
-  border-color: var(--color-error);
-}
-
-.smoke-feedback {
-  color: var(--color-mint);
-  margin: 0;
-}
-
-.smoke-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.smoke-entry {
-  display: flex;
-  gap: var(--space-3);
-  flex-wrap: wrap;
-  padding: var(--space-2);
-  background: var(--color-surface);
-  border-radius: var(--radius-sm);
-}
-
-.smoke-date {
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text);
 }
 
 .menu-nav {
