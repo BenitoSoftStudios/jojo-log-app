@@ -1,6 +1,6 @@
 <!-- Care Ledger — main screen.
      Phase 3: loads real family + baby context from composables.
-     Phase 4+ adds the live entry subscription and ledger hierarchy. -->
+     Phase 4: live entry subscription + smoke-test CRUD panel. -->
 <template>
   <AppLayout>
     <template #header>
@@ -9,7 +9,7 @@
         :active-baby-id="activeBabyId"
         @select="selectBaby"
       />
-      <SyncStatus status="synced" />
+      <SyncStatus :status="syncStatus" />
       <button class="menu-btn" aria-label="Menu" @click="menuOpen = true">☰</button>
     </template>
 
@@ -32,12 +32,30 @@
         :feed-count="0"
       />
 
-      <!-- Ledger placeholder — Phase 4+ -->
-      <div class="ledger-placeholder">
-        <p class="text-faint text-sm">
-          Care Ledger loads here in Phase 4.<br />
-          Month → Week Segment → Day → Entry hierarchy.
-        </p>
+      <!-- Phase 4 smoke-test panel -->
+      <div class="smoke-panel">
+        <div class="smoke-counts text-sm">
+          <span>Active: <strong>{{ entries.length }}</strong></span>
+          <span>Deleted: <strong>{{ deletedEntries.length }}</strong></span>
+        </div>
+
+        <div class="smoke-actions">
+          <button class="smoke-btn" @click="handleCreate">+ Create test entry</button>
+          <button class="smoke-btn" :disabled="!entries[0]" @click="handleUpdate">Edit first notes</button>
+          <button class="smoke-btn smoke-btn--danger" :disabled="!entries[0]" @click="handleDelete">Soft-delete first</button>
+          <button class="smoke-btn" :disabled="!deletedEntries[0]" @click="handleRestore">Restore first deleted</button>
+        </div>
+
+        <p v-if="feedback" class="smoke-feedback text-sm">{{ feedback }}</p>
+
+        <ul class="smoke-list">
+          <li v-for="entry in entries" :key="entry.id" class="smoke-entry text-sm">
+            <span class="smoke-date">{{ entry.entryDate }} {{ entry.entryTime }}</span>
+            <span>{{ entry.amountMl ?? '—' }} mL</span>
+            <span>diaper: {{ entry.diaper ?? '—' }}</span>
+            <span class="smoke-author text-faint">{{ entry.createdByLabel }}</span>
+          </li>
+        </ul>
       </div>
     </template>
 
@@ -65,16 +83,20 @@ import AppSheet     from '@/ui/AppSheet.vue'
 import BabySwitcher from '@/babies/BabySwitcher.vue'
 import SyncStatus   from '@/ui/SyncStatus.vue'
 import SummaryChips from '@/entries/SummaryChips.vue'
-import { useAuth }   from '@/auth/useAuth.js'
-import { useFamily } from '@/families/useFamily.js'
-import { useBabies } from '@/babies/useBabies.js'
+import { useAuth }    from '@/auth/useAuth.js'
+import { useFamily }  from '@/families/useFamily.js'
+import { useBabies }  from '@/babies/useBabies.js'
+import { useEntries } from '@/entries/useEntries.js'
+import { todayString } from '@/utils/dateUtils.js'
 
 const router = useRouter()
-const { currentUser, signOut }                          = useAuth()
-const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily } = useFamily()
+const { currentUser, signOut }                                                     = useAuth()
+const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily }    = useFamily()
 const { activeBabies, activeBabyId, loading: babiesLoading, loadBabies, selectBaby } = useBabies()
+const { entries, deletedEntries, syncStatus, createEntry, updateEntry, softDeleteEntry, restoreEntry } = useEntries()
 
 const menuOpen = ref(false)
+const feedback = ref('')
 
 onMounted(async () => {
   if (!familyId.value && currentUser.value) {
@@ -84,6 +106,60 @@ onMounted(async () => {
     await loadBabies(familyId.value)
   }
 })
+
+function setFeedback(msg) {
+  feedback.value = msg
+  setTimeout(() => { feedback.value = '' }, 3000)
+}
+
+async function handleCreate() {
+  const now = new Date()
+  const hh  = String(now.getHours()).padStart(2, '0')
+  const mm  = String(now.getMinutes()).padStart(2, '0')
+  try {
+    await createEntry({ entryDate: todayString(), entryTime: `${hh}:${mm}`, amountMl: 90, diaper: null })
+    setFeedback('Test entry created')
+  } catch (e) {
+    console.error('[CareLedgerView] createEntry failed | code:', e.code, '| message:', e.message, e)
+    setFeedback('Create failed — see console')
+  }
+}
+
+async function handleUpdate() {
+  const entry = entries.value[0]
+  if (!entry) return
+  try {
+    await updateEntry(entry.id, { notes: `Smoke-tested at ${new Date().toLocaleTimeString()}` })
+    setFeedback(`Updated ${entry.id.slice(-6)}`)
+  } catch (e) {
+    console.error('[CareLedgerView] updateEntry failed | code:', e.code, '| message:', e.message, e)
+    setFeedback('Update failed — see console')
+  }
+}
+
+async function handleDelete() {
+  const entry = entries.value[0]
+  if (!entry) return
+  try {
+    await softDeleteEntry(entry.id)
+    setFeedback(`Deleted ${entry.id.slice(-6)}`)
+  } catch (e) {
+    console.error('[CareLedgerView] softDeleteEntry failed | code:', e.code, '| message:', e.message, e)
+    setFeedback('Delete failed — see console')
+  }
+}
+
+async function handleRestore() {
+  const entry = deletedEntries.value[0]
+  if (!entry) return
+  try {
+    await restoreEntry(entry.id)
+    setFeedback(`Restored ${entry.id.slice(-6)}`)
+  } catch (e) {
+    console.error('[CareLedgerView] restoreEntry failed | code:', e.code, '| message:', e.message, e)
+    setFeedback('Restore failed — see console')
+  }
+}
 
 async function handleSignOut() {
   menuOpen.value = false
@@ -116,13 +192,74 @@ async function handleSignOut() {
   -webkit-tap-highlight-color: transparent;
 }
 
-.ledger-placeholder {
-  margin-top: var(--space-8);
-  text-align: center;
-  padding: var(--space-8);
+.smoke-panel {
+  margin-top: var(--space-4);
+  padding: var(--space-4);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-lg);
-  color: var(--color-text-faint);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.smoke-counts {
+  display: flex;
+  gap: var(--space-4);
+  color: var(--color-text-soft);
+}
+
+.smoke-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.smoke-btn {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+.smoke-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.smoke-btn--danger {
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+.smoke-feedback {
+  color: var(--color-mint);
+  margin: 0;
+}
+
+.smoke-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.smoke-entry {
+  display: flex;
+  gap: var(--space-3);
+  flex-wrap: wrap;
+  padding: var(--space-2);
+  background: var(--color-surface);
+  border-radius: var(--radius-sm);
+}
+
+.smoke-date {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
 }
 
 .menu-nav {
