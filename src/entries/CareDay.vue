@@ -39,7 +39,7 @@ defineProps({
   day:    { type: Object,  required: true },
   isOpen: { type: Boolean, default: false },
 })
-defineEmits(['toggle', 'add-entry', 'update-entry', 'open-detail'])
+const emit = defineEmits(['toggle', 'add-entry', 'update-entry', 'open-detail'])
 </script>
 
 <style scoped>

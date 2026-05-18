@@ -42,7 +42,7 @@ const props = defineProps({
   openWeekKeys: { type: Object,  required: true },  // Set<`${monthKey}:${weekStartDate}`>
   openDays:     { type: Object,  required: true },  // Set<date>
 })
-defineEmits(['toggle-month', 'toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
+const emit = defineEmits(['toggle-month', 'toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
 
 const isOpen = computed(() => props.openMonths.has(props.month.monthKey))
 </script>

@@ -36,7 +36,7 @@ defineProps({
   isOpen:    { type: Boolean, default: false },
   openDays:  { type: Set,     required: true },
 })
-defineEmits(['toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
+const emit = defineEmits(['toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
 </script>
 
 <style scoped>

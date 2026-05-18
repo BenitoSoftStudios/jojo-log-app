@@ -1,4 +1,4 @@
-import { ref, readonly, watch, onUnmounted } from 'vue'
+import { ref, readonly, watch } from 'vue'
 import { useFamily, currentMember } from '@/families/useFamily.js'
 import { useBabies } from '@/babies/useBabies.js'
 import {
@@ -9,7 +9,7 @@ import {
   restoreEntry  as _restoreEntry,
 } from './entryService.js'
 
-// Module-level singleton — one Firestore listener shared across all instances.
+// Module-level singleton — one Firestore listener shared across the entire app lifetime.
 const _entries        = ref([])
 const _deletedEntries = ref([])
 const _syncStatus     = ref('synced')
@@ -60,29 +60,23 @@ function resubscribe(familyId, babyId) {
   _unsubscribe    = subscribeToEntries(familyId, babyId, handleSnapshot, handleError)
 }
 
-export function useEntries() {
-  const { familyId }     = useFamily()
-  const { activeBabyId } = useBabies()
+// Module-level watch manages the subscription for the entire app lifetime.
+// Moving this out of useEntries() prevents any single component's unmount from
+// killing the shared singleton subscription.
+const { familyId }     = useFamily()
+const { activeBabyId } = useBabies()
 
-  watch(
-    [familyId, activeBabyId],
-    ([fid, bid]) => {
-      if (fid !== _activeFamilyId || bid !== _activeBabyId) {
-        resubscribe(fid, bid)
-      }
-    },
-    { immediate: true }
-  )
-
-  onUnmounted(() => {
-    if (_unsubscribe) {
-      _unsubscribe()
-      _unsubscribe    = null
-      _activeFamilyId = null
-      _activeBabyId   = null
+watch(
+  [familyId, activeBabyId],
+  ([fid, bid]) => {
+    if (fid !== _activeFamilyId || bid !== _activeBabyId) {
+      resubscribe(fid, bid)
     }
-  })
+  },
+  { immediate: true }
+)
 
+export function useEntries() {
   async function createEntry(fields) {
     await _createEntry(_activeFamilyId, _activeBabyId, fields, currentMember.value)
   }

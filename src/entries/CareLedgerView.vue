@@ -11,7 +11,7 @@
         @select="selectBaby"
       />
       <SyncStatus :status="syncStatus" />
-      <button class="header-day-btn" type="button" title="Start next day" @click="handleStartNextDay">
+      <button class="header-day-btn" type="button" title="Add a day" @click="handleOpenDayPicker">
         + Day
       </button>
       <button class="menu-btn" aria-label="Menu" @click="menuOpen = true">☰</button>
@@ -35,6 +35,9 @@
         :month-ml="stats.monthMl"
         :feed-count="stats.feedCount"
       />
+
+      <!-- Write error banner -->
+      <p v-if="writeError" class="write-error text-sm" role="alert">{{ writeError }}</p>
 
       <!-- Ledger hierarchy -->
       <div v-if="grouped.months.length === 0" class="ledger-empty">
@@ -68,6 +71,44 @@
       @save-notes="handleSaveNotes"
       @delete="handleDeleteEntry"
     />
+
+    <!-- Day picker sheet — shown when user taps + Day -->
+    <AppSheet v-model="dayPickerOpen" title="Add Day">
+      <p class="day-picker-hint text-soft text-sm">
+        Creates a blank entry for the chosen date.
+      </p>
+      <div class="day-picker-options">
+        <button class="day-picker-btn" type="button" @click="doCreateDay(todayDate)">
+          <span class="day-picker-btn__label">Today</span>
+          <span class="day-picker-btn__date text-soft text-sm">{{ todayDate }}</span>
+        </button>
+        <button class="day-picker-btn" type="button" @click="doCreateDay(nextDayDate)">
+          <span class="day-picker-btn__label">Next day</span>
+          <span class="day-picker-btn__date text-soft text-sm">{{ nextDayDate }}</span>
+        </button>
+        <div class="day-picker-custom">
+          <label class="day-picker-label text-soft text-sm" for="day-picker-input">
+            Choose date
+          </label>
+          <input
+            id="day-picker-input"
+            class="day-picker-input"
+            type="date"
+            :value="pickedCustomDate"
+            :max="todayDate"
+            @change="e => pickedCustomDate = e.target.value"
+          />
+          <button
+            class="day-picker-btn"
+            type="button"
+            :disabled="!pickedCustomDate"
+            @click="pickedCustomDate && doCreateDay(pickedCustomDate)"
+          >
+            <span class="day-picker-btn__label">Use this date</span>
+          </button>
+        </div>
+      </div>
+    </AppSheet>
 
     <!-- Hamburger menu sheet -->
     <AppSheet v-model="menuOpen" title="Menu">
@@ -105,16 +146,21 @@ import { todayString } from '@/utils/dateUtils.js'
 
 const router = useRouter()
 
-const { currentUser, signOut }                                                             = useAuth()
-const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily }            = useFamily()
-const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies, selectBaby } = useBabies()
-const { entries, syncStatus, createEntry, updateEntry, softDeleteEntry }                   = useEntries()
+const { currentUser, signOut }                                                               = useAuth()
+const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily, clearFamily } = useFamily()
+const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
+        selectBaby, clearBabies }                                                            = useBabies()
+const { entries, syncStatus, createEntry, updateEntry, softDeleteEntry }                     = useEntries()
 const { grouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
-        toggleMonth, toggleWeek, toggleDay, openDay }                                      = useLedger()
+        toggleMonth, toggleWeek, toggleDay, openDay }                                        = useLedger()
 
-const menuOpen        = ref(false)
-const detailSheetOpen = ref(false)
-const detailEntryId   = ref(null)
+const menuOpen         = ref(false)
+const detailSheetOpen  = ref(false)
+const detailEntryId    = ref(null)
+const dayPickerOpen    = ref(false)
+const pickedCustomDate = ref('')
+const writeError       = ref('')
+let   _writeErrorTimer = null
 
 // Always reflect the latest version of the entry from the live list.
 const detailEntry = computed(() =>
@@ -126,6 +172,15 @@ watch(detailEntry, (e) => {
   if (!e && detailSheetOpen.value) detailSheetOpen.value = false
 })
 
+// Stable today string (does not need to be reactive — sessions don't span midnight).
+const todayDate = todayString()
+
+// Next calendar day after the most recent ledger date (used as default in picker).
+const nextDayDate = computed(() => {
+  if (!mostRecentDate.value) return todayDate
+  return buildStartNextDayEntry(mostRecentDate.value, activeBaby.value).date
+})
+
 onMounted(async () => {
   if (!familyId.value && currentUser.value) {
     await loadFamily(currentUser.value.uid)
@@ -135,7 +190,44 @@ onMounted(async () => {
   }
 })
 
-// ── Entry actions ──────────────────────────────────────────────────────────────
+// ── Write error helper ─────────────────────────────────────────────────────
+
+function setWriteError(msg) {
+  writeError.value = msg
+  clearTimeout(_writeErrorTimer)
+  _writeErrorTimer = setTimeout(() => { writeError.value = '' }, 5000)
+}
+
+// ── + Day picker ───────────────────────────────────────────────────────────
+
+function handleOpenDayPicker() {
+  pickedCustomDate.value = nextDayDate.value
+  dayPickerOpen.value    = true
+}
+
+async function doCreateDay(date) {
+  if (!date) return
+  dayPickerOpen.value = false
+  const defaults = buildNewEntryDefaults(null, activeBaby.value, null)
+  try {
+    await createEntry({
+      entryDate:  date,
+      entryTime:  defaults.entryTime,
+      amountMl:   null,
+      diaper:     null,
+      vitaminD:   false,
+      medication: false,
+      tummyTime:  false,
+      notes:      '',
+    })
+    openDay(date)
+  } catch (e) {
+    console.error('[CareLedgerView] createEntry (+ Day) failed', e)
+    setWriteError('Failed to add day. Check your connection and try again.')
+  }
+}
+
+// ── Entry actions ──────────────────────────────────────────────────────────
 
 async function handleAddEntry(day) {
   const lastEntry = day.entries[day.entries.length - 1] ?? null
@@ -153,39 +245,7 @@ async function handleAddEntry(day) {
     })
   } catch (e) {
     console.error('[CareLedgerView] createEntry failed', e)
-  }
-}
-
-async function handleStartNextDay() {
-  const mrd = mostRecentDate.value
-  let newDate
-  let entryFields
-
-  if (!mrd) {
-    // No entries yet — create the first entry for today.
-    const defaults = buildNewEntryDefaults(null, activeBaby.value, null)
-    newDate     = todayString()
-    entryFields = {
-      entryTime:  defaults.entryTime,
-      amountMl:   null,
-      diaper:     null,
-      vitaminD:   false,
-      medication: false,
-      tummyTime:  false,
-      notes:      '',
-    }
-  } else {
-    // Always advance to the next calendar day after the most recent ledger date.
-    const result = buildStartNextDayEntry(mrd, activeBaby.value)
-    newDate      = result.date
-    entryFields  = result.entryFields
-  }
-
-  try {
-    await createEntry({ entryDate: newDate, ...entryFields })
-    openDay(newDate)
-  } catch (e) {
-    console.error('[CareLedgerView] createEntry (+ Day) failed', e)
+    setWriteError('Failed to add entry. Check your connection.')
   }
 }
 
@@ -194,6 +254,7 @@ async function handleUpdateEntry(entryId, changes) {
     await updateEntry(entryId, changes)
   } catch (e) {
     console.error('[CareLedgerView] updateEntry failed', e)
+    setWriteError('Failed to save change. Check your connection.')
   }
 }
 
@@ -207,6 +268,7 @@ async function handleSaveNotes(entryId, notes) {
     await updateEntry(entryId, { notes })
   } catch (e) {
     console.error('[CareLedgerView] notes save failed', e)
+    setWriteError('Failed to save notes. Check your connection.')
   }
 }
 
@@ -216,12 +278,17 @@ async function handleDeleteEntry(entryId) {
     detailSheetOpen.value = false
   } catch (e) {
     console.error('[CareLedgerView] softDeleteEntry failed', e)
+    setWriteError('Failed to delete entry. Check your connection.')
   }
 }
 
 async function handleSignOut() {
   menuOpen.value = false
   await signOut()
+  // Clear module-level family/baby singletons so the module-level watch in
+  // useEntries sees null IDs and kills the Firestore subscription cleanly.
+  clearFamily()
+  clearBabies()
   await router.push('/login')
 }
 </script>
@@ -234,6 +301,14 @@ async function handleSignOut() {
 }
 
 .member-greeting {
+  margin-bottom: var(--space-2);
+}
+
+.write-error {
+  color: var(--color-error);
+  background: rgba(201, 64, 64, 0.07);
+  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3);
   margin-bottom: var(--space-2);
 }
 
@@ -284,6 +359,85 @@ async function handleSignOut() {
   overflow: hidden;
   border: 1px solid var(--color-border);
 }
+
+/* ── Day picker sheet ─────────────────────────────────────────────────── */
+
+.day-picker-hint {
+  margin-bottom: var(--space-4);
+}
+
+.day-picker-options {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.day-picker-btn {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  background: var(--color-surface-alt);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  min-height: 48px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.day-picker-btn:active {
+  background: var(--color-mint-soft);
+  border-color: var(--color-mint);
+}
+.day-picker-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.day-picker-btn__label {
+  flex: 1;
+}
+
+.day-picker-btn__date {
+  flex-shrink: 0;
+}
+
+.day-picker-custom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.day-picker-label {
+  display: block;
+}
+
+.day-picker-input {
+  width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-base);
+  color: var(--color-text);
+  background: var(--color-surface);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.day-picker-input:focus {
+  outline: none;
+  border-color: var(--color-mint);
+}
+
+/* ── Menu sheet ───────────────────────────────────────────────────────── */
 
 .menu-nav {
   display: flex;
