@@ -15,12 +15,16 @@
         </div>
         <!-- Row 2: date / time / sync -->
         <div class="ledger-header__row ledger-header__row--sub">
-          <span class="ledger-header__datetime text-faint">{{ headerDate }} · {{ headerTime }}</span>
-          <span
-            class="ledger-header__sync-dot"
-            :class="`ledger-header__sync-dot--${syncStatus}`"
-            :title="syncStatus"
-          />
+          <span class="ledger-header__datetime">
+            <span class="ledger-header__date text-faint">{{ headerDate }}</span>
+            <span class="ledger-header__time">{{ headerTime }}</span>
+          </span>
+          <span class="ledger-header__sync" :class="`ledger-header__sync--${syncStatus}`">
+            <span class="ledger-header__sync-dot" />
+            <span v-if="syncStatus !== 'synced'" class="ledger-header__sync-label">
+              {{ syncStatus === 'offline' ? 'Offline' : 'Sync error' }}
+            </span>
+          </span>
         </div>
       </div>
     </template>
@@ -129,13 +133,11 @@
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
         <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
         <hr class="menu-divider" />
-        <!-- Entry sort order toggle -->
-        <div class="menu-sort-row">
-          <span class="menu-sort-label text-soft text-sm">Entry order</span>
-          <button class="menu-sort-btn" type="button" @click="toggleSortOrder">
-            {{ entrySortOrder === 'newest-first' ? 'Newest first' : 'Oldest first' }}
-          </button>
-        </div>
+        <!-- Entry sort order preference -->
+        <button class="menu-item menu-sort-row" type="button" @click="toggleSortOrder">
+          <span class="menu-sort-label">Entry order</span>
+          <span class="menu-sort-value">{{ entrySortOrder === 'newest-first' ? 'Newest ↑' : 'Oldest ↑' }}</span>
+        </button>
         <hr class="menu-divider" />
         <button class="menu-item menu-item--signout" @click="handleSignOut">Sign out</button>
       </nav>
@@ -183,7 +185,7 @@ const _now = ref(new Date())
 let _clockTimer = null
 
 onMounted(async () => {
-  _clockTimer = setInterval(() => { _now.value = new Date() }, 30_000)
+  _clockTimer = setInterval(() => { _now.value = new Date() }, 1_000)
 
   if (!familyId.value && currentUser.value) {
     await loadFamily(currentUser.value.uid)
@@ -200,7 +202,8 @@ const headerDate = computed(() =>
 const headerTime = computed(() => {
   const h = String(_now.value.getHours()).padStart(2, '0')
   const m = String(_now.value.getMinutes()).padStart(2, '0')
-  return `${h}:${m}`
+  const s = String(_now.value.getSeconds()).padStart(2, '0')
+  return `${h}:${m}:${s}`
 })
 const babyLabel = computed(() =>
   activeBaby.value?.nickname ?? activeBaby.value?.name ?? '—'
@@ -381,8 +384,28 @@ async function handleSignOut() {
 }
 
 .ledger-header__datetime {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
   flex: 1;
   font-size: var(--font-size-xs);
+}
+
+.ledger-header__date {
+  color: var(--color-text-faint);
+}
+
+.ledger-header__time {
+  color: var(--color-mint);
+  font-weight: var(--font-weight-medium);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-header__sync {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
 }
 
 .ledger-header__sync-dot {
@@ -391,9 +414,15 @@ async function handleSignOut() {
   border-radius: var(--radius-full);
   flex-shrink: 0;
 }
-.ledger-header__sync-dot--synced  { background: var(--color-mint); }
-.ledger-header__sync-dot--offline { background: var(--color-sand); }
-.ledger-header__sync-dot--error   { background: var(--color-error); }
+.ledger-header__sync--synced  .ledger-header__sync-dot { background: var(--color-mint); }
+.ledger-header__sync--offline .ledger-header__sync-dot { background: var(--color-sand); }
+.ledger-header__sync--error   .ledger-header__sync-dot { background: var(--color-error); }
+
+.ledger-header__sync-label {
+  font-size: var(--font-size-xs);
+}
+.ledger-header__sync--offline .ledger-header__sync-label { color: var(--color-sand); }
+.ledger-header__sync--error   .ledger-header__sync-label { color: var(--color-error); }
 
 /* ── Action buttons ───────────────────────────────────────────────────── */
 
@@ -590,30 +619,27 @@ async function handleSignOut() {
   color: var(--color-error);
 }
 
+/* menu-sort-row extends .menu-item — same height, same padding, same tap target */
 .menu-sort-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: var(--space-2) var(--space-2);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  text-align: left;
+  width: 100%;
 }
 
 .menu-sort-label {
   color: var(--color-text-soft);
+  font-size: var(--font-size-md);
 }
 
-.menu-sort-btn {
-  background: none;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-md);
-  color: var(--color-mint);
-  font-family: var(--font-family);
+.menu-sort-value {
   font-size: var(--font-size-sm);
+  color: var(--color-mint);
   font-weight: var(--font-weight-medium);
-  padding: var(--space-1) var(--space-3);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.menu-sort-btn:active {
-  background: var(--color-mint-soft);
 }
 </style>

@@ -78,7 +78,7 @@
         type="button"
         :aria-label="entry.vitaminD ? 'Vitamin D on — tap to turn off' : 'Vitamin D off — tap to turn on'"
         @click="emitUpdate({ vitaminD: !entry.vitaminD })"
-      >☀</button>
+      >{{ SUN }}</button>
 
       <!-- Medication — mint when on -->
       <button
@@ -133,6 +133,9 @@ const DIAPER_OPTIONS = [
   { value: 'WP', display: 'WP', label: 'Wet + poop' },
   { value: '-',  display: '-',  label: 'No diaper change' },
 ]
+
+// U+FE0E forces text-mode rendering so CSS color applies on all platforms.
+const SUN = '☀︎'
 
 const incomplete     = computed(() => isIncomplete(props.entry))
 const tummyTimeCount = computed(() =>
