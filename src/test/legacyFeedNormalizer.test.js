@@ -64,6 +64,7 @@ describe('normalizeLegacyFeedToEntry — provenance', () => {
   it('sets createdByUserId to null',     () => expect(normalized().data.createdByUserId).toBeNull())
   it('sets medication to false',         () => expect(normalized().data.medication).toBe(false))
   it('sets tummyTime to false',          () => expect(normalized().data.tummyTime).toBe(false))
+  it('sets tummyTimeCount to 0',         () => expect(normalized().data.tummyTimeCount).toBe(0))
   it('sets deleted to false',            () => expect(normalized().data.deleted).toBe(false))
   it('sets updatedAt to null',           () => expect(normalized().data.updatedAt).toBeNull())
   it('sets updatedByUserId to null',     () => expect(normalized().data.updatedByUserId).toBeNull())
@@ -142,6 +143,34 @@ describe('validateNormalizedEntry', () => {
   it('returns valid when tummyTime is false (legacy default)', () => {
     const result = validateNormalizedEntry({ ...normalized(), tummyTime: false })
     expect(result.valid).toBe(true)
+  })
+
+  it('returns valid when tummyTimeCount is 0', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: 0 }).valid).toBe(true)
+  })
+
+  it('returns valid when tummyTimeCount is 1', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: 1 }).valid).toBe(true)
+  })
+
+  it('returns valid when tummyTimeCount is 9', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: 9 }).valid).toBe(true)
+  })
+
+  it('reports error when tummyTimeCount is -1 (below range)', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: -1 }).valid).toBe(false)
+  })
+
+  it('reports error when tummyTimeCount is 10 (above range)', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: 10 }).valid).toBe(false)
+  })
+
+  it('reports error when tummyTimeCount is a string', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: '1' }).valid).toBe(false)
+  })
+
+  it('reports error when tummyTimeCount is undefined', () => {
+    expect(validateNormalizedEntry({ ...normalized(), tummyTimeCount: undefined }).valid).toBe(false)
   })
 })
 

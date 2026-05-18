@@ -101,6 +101,12 @@ export const LEGACY_ENTRY = makeEntry('e016', {
 // tummyTime: true — complete entry, no effect on completion or mL totals
 export const TUMMY_TIME_ENTRY = makeEntry('e020', { entryDate: '2026-02-16', entryTime: '11:00', amountMl: 95, diaper: 'W', tummyTime: true })
 
+// ── Tummy Time count entries (NOT in ALL_ENTRIES — dedicated to count-model tests) ──
+// e022: count-based model, single session
+export const TUMMY_TIME_COUNT_1 = makeEntry('e022', { entryDate: '2026-02-17', entryTime: '11:00', amountMl: 100, diaper: 'W', tummyTime: false, tummyTimeCount: 1 })
+// e023: count-based model, max sessions
+export const TUMMY_TIME_COUNT_9 = makeEntry('e023', { entryDate: '2026-02-17', entryTime: '14:00', amountMl: 100, diaper: 'W', tummyTime: false, tummyTimeCount: 9 })
+
 // ── Same-day multiple entries (2026-01-15, Thu) ──────────────────────────────
 // Must sort ascending by entryTime: A (06:00) → B (09:00) → C (12:00)
 export const SAME_DAY_A = makeEntry('e017', { entryDate: '2026-01-15', entryTime: '06:00', amountMl: 90,  diaper: 'W' })

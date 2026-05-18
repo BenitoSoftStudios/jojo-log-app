@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
-import { isIncomplete, isCompletedFeed, buildNewEntryDefaults, buildStartNextDayEntry } from '@/utils/entryUtils.js'
+import { isIncomplete, isCompletedFeed, buildNewEntryDefaults, buildStartNextDayEntry, getTummyTimeCount } from '@/utils/entryUtils.js'
+import { TUMMY_TIME_ENTRY, TUMMY_TIME_COUNT_1, TUMMY_TIME_COUNT_9 } from './fixtures/entries.fixture.js'
 
 describe('isIncomplete', () => {
   it('returns true when amountMl is null', () => {
@@ -61,6 +62,32 @@ describe('isCompletedFeed', () => {
   })
 })
 
+// ── getTummyTimeCount ────────────────────────────────────────────────────────
+
+describe('getTummyTimeCount', () => {
+  it('returns tummyTimeCount when present and > 0', () => {
+    expect(getTummyTimeCount(TUMMY_TIME_COUNT_1)).toBe(1)
+    expect(getTummyTimeCount(TUMMY_TIME_COUNT_9)).toBe(9)
+  })
+
+  it('returns 0 when tummyTimeCount is 0', () => {
+    expect(getTummyTimeCount({ tummyTimeCount: 0, tummyTime: false })).toBe(0)
+  })
+
+  it('backward compat: returns 1 when tummyTimeCount absent and tummyTime is true', () => {
+    expect(getTummyTimeCount(TUMMY_TIME_ENTRY)).toBe(1)
+  })
+
+  it('backward compat: returns 0 when tummyTimeCount absent and tummyTime is false', () => {
+    expect(getTummyTimeCount({ tummyTime: false })).toBe(0)
+  })
+
+  it('prefers tummyTimeCount over legacy tummyTime when both present', () => {
+    expect(getTummyTimeCount({ tummyTimeCount: 3, tummyTime: false })).toBe(3)
+    expect(getTummyTimeCount({ tummyTimeCount: 0, tummyTime: true })).toBe(0)
+  })
+})
+
 // ── tummyTime — completion and feed count ────────────────────────────────────
 
 describe('tummyTime does not affect completion or feed count', () => {
@@ -83,11 +110,21 @@ describe('tummyTime does not affect completion or feed count', () => {
   it('isCompletedFeed returns false when tummyTime is true but amountMl is 0', () => {
     expect(isCompletedFeed({ amountMl: 0, deleted: false, tummyTime: true })).toBe(false)
   })
+
+  it('isIncomplete is not affected by tummyTimeCount', () => {
+    expect(isIncomplete({ amountMl: 90, diaper: 'W', tummyTimeCount: 9 })).toBe(false)
+    expect(isIncomplete({ amountMl: null, diaper: 'W', tummyTimeCount: 9 })).toBe(true)
+  })
+
+  it('isCompletedFeed is not affected by tummyTimeCount', () => {
+    expect(isCompletedFeed({ amountMl: 90, deleted: false, tummyTimeCount: 9 })).toBe(true)
+    expect(isCompletedFeed({ amountMl: 0, deleted: false, tummyTimeCount: 9 })).toBe(false)
+  })
 })
 
-// ── buildNewEntryDefaults — tummyTime ────────────────────────────────────────
+// ── buildNewEntryDefaults — tummyTime / tummyTimeCount ───────────────────────
 
-describe('buildNewEntryDefaults — tummyTime', () => {
+describe('buildNewEntryDefaults — tummyTime / tummyTimeCount', () => {
   it('includes tummyTime: false in defaults', () => {
     const defaults = buildNewEntryDefaults(null, null, null)
     expect(defaults.tummyTime).toBe(false)
@@ -97,13 +134,28 @@ describe('buildNewEntryDefaults — tummyTime', () => {
     const defaults = buildNewEntryDefaults({ entryTime: '08:00' }, null, null)
     expect(defaults.tummyTime).toBe(false)
   })
+
+  it('includes tummyTimeCount: 0 in defaults', () => {
+    const defaults = buildNewEntryDefaults(null, null, null)
+    expect(defaults.tummyTimeCount).toBe(0)
+  })
+
+  it('includes tummyTimeCount: 0 when a lastEntry is provided', () => {
+    const defaults = buildNewEntryDefaults({ entryTime: '08:00' }, null, null)
+    expect(defaults.tummyTimeCount).toBe(0)
+  })
 })
 
-// ── buildStartNextDayEntry — tummyTime ───────────────────────────────────────
+// ── buildStartNextDayEntry — tummyTime / tummyTimeCount ──────────────────────
 
-describe('buildStartNextDayEntry — tummyTime', () => {
+describe('buildStartNextDayEntry — tummyTime / tummyTimeCount', () => {
   it('includes tummyTime: false in entryFields', () => {
     const result = buildStartNextDayEntry('2026-03-15', null)
     expect(result.entryFields.tummyTime).toBe(false)
+  })
+
+  it('includes tummyTimeCount: 0 in entryFields', () => {
+    const result = buildStartNextDayEntry('2026-03-15', null)
+    expect(result.entryFields.tummyTimeCount).toBe(0)
   })
 })

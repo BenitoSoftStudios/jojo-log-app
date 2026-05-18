@@ -45,6 +45,7 @@ export function normalizeLegacyFeedToEntry(feedDoc) {
       vitaminD:        feedDoc.vitd === 1,
       medication:      false,
       tummyTime:       false,
+      tummyTimeCount:  0,
       notes:           feedDoc.notes ?? '',
       source:          'legacy',
       createdByUserId: null,
@@ -85,6 +86,14 @@ export function validateNormalizedEntry(entry) {
   }
   if (typeof entry.tummyTime !== 'boolean') {
     errors.push('tummyTime must be a boolean')
+  }
+  if (
+    typeof entry.tummyTimeCount !== 'number' ||
+    !Number.isInteger(entry.tummyTimeCount) ||
+    entry.tummyTimeCount < 0 ||
+    entry.tummyTimeCount > 9
+  ) {
+    errors.push('tummyTimeCount must be an integer 0–9')
   }
   if (entry.source !== 'legacy') {
     errors.push('source must be "legacy"')

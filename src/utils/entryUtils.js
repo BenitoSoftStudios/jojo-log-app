@@ -1,4 +1,12 @@
 /**
+ * Returns the tummy time count for an entry.
+ * Reads tummyTimeCount when present; falls back to legacy boolean tummyTime.
+ */
+export function getTummyTimeCount(entry) {
+  return entry.tummyTimeCount ?? (entry.tummyTime ? 1 : 0)
+}
+
+/**
  * An entry is Incomplete when amountMl is null OR diaper is null.
  * 0 mL is valid (not incomplete). "-" diaper is valid (not incomplete).
  */
@@ -41,13 +49,14 @@ export function buildNewEntryDefaults(lastEntry, baby, weeklySettings) {
   }
 
   return {
-    entryTime:  prepopTime,
-    amountMl:   weeklySettings?.usualBottleAmountMl ?? null,
-    diaper:     null,
-    vitaminD:   false,
-    medication: false,
-    tummyTime:  false,
-    notes:      ''
+    entryTime:      prepopTime,
+    amountMl:       weeklySettings?.usualBottleAmountMl ?? null,
+    diaper:         null,
+    vitaminD:       false,
+    medication:     false,
+    tummyTime:      false,
+    tummyTimeCount: 0,
+    notes:          ''
   }
 }
 
@@ -63,13 +72,14 @@ export function buildStartNextDayEntry(lastEntryDate, baby) {
   return {
     date: nextDate,
     entryFields: {
-      entryTime:  '00:00',
-      amountMl:   null,
-      diaper:     null,
-      vitaminD:   false,
-      medication: false,
-      tummyTime:  false,
-      notes:      ''
+      entryTime:      '00:00',
+      amountMl:       null,
+      diaper:         null,
+      vitaminD:       false,
+      medication:     false,
+      tummyTime:      false,
+      tummyTimeCount: 0,
+      notes:          ''
     }
   }
 }
