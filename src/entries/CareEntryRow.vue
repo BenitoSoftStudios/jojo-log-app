@@ -71,14 +71,19 @@
     <!-- ── Line 2: symbol toggles ─────────────────────────────────────── -->
     <div class="entry-row__line2">
 
-      <!-- Vitamin D — gold when on -->
+      <!-- Vitamin D — gold when on; SVG sun scales with visual weight of Rx/★ -->
       <button
         class="sym-btn"
         :class="{ 'sym-btn--vitd-on': entry.vitaminD }"
         type="button"
         :aria-label="entry.vitaminD ? 'Vitamin D on — tap to turn off' : 'Vitamin D off — tap to turn on'"
         @click="emitUpdate({ vitaminD: !entry.vitaminD })"
-      >{{ SUN }}</button>
+      >
+        <svg class="sun-icon" viewBox="0 0 20 20" aria-hidden="true" fill="none">
+          <circle cx="10" cy="10" r="3.5" fill="currentColor"/>
+          <path d="M10 2v2M10 16v2M2 10h2M16 10h2M4.22 4.22l1.42 1.42M14.36 14.36l1.42 1.42M15.78 4.22l-1.42 1.42M5.64 14.36l-1.42 1.42" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+      </button>
 
       <!-- Medication — mint when on -->
       <button
@@ -133,9 +138,6 @@ const DIAPER_OPTIONS = [
   { value: 'WP', display: 'WP', label: 'Wet + poop' },
   { value: '-',  display: '-',  label: 'No diaper change' },
 ]
-
-// U+FE0E forces text-mode rendering so CSS color applies on all platforms.
-const SUN = '☀︎'
 
 const incomplete     = computed(() => isIncomplete(props.entry))
 const tummyTimeCount = computed(() =>
@@ -406,10 +408,17 @@ function onMlBlur(e) {
   transition: color var(--duration-fast);
 }
 
+/* Inline SVG sun — sized to match Rx/★ visual weight */
+.sun-icon {
+  width: 15px;
+  height: 15px;
+  display: block;
+  flex-shrink: 0;
+}
+
 /* Vitamin D — gold when active */
 .sym-btn--vitd-on {
   color: var(--color-gold);
-  font-weight: var(--font-weight-semibold);
 }
 
 /* Medication — mint when active */

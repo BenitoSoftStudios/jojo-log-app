@@ -21,8 +21,8 @@
           </span>
           <span class="ledger-header__sync" :class="`ledger-header__sync--${syncStatus}`">
             <span class="ledger-header__sync-dot" />
-            <span v-if="syncStatus !== 'synced'" class="ledger-header__sync-label">
-              {{ syncStatus === 'offline' ? 'Offline' : 'Sync error' }}
+            <span class="ledger-header__sync-label">
+              {{ syncStatus === 'synced' ? 'Synced' : syncStatus === 'offline' ? 'Offline' : 'Sync error' }}
             </span>
           </span>
         </div>
@@ -213,6 +213,7 @@ const babyLabel = computed(() =>
 
 function toggleSortOrder() {
   entrySortOrder.value = entrySortOrder.value === 'newest-first' ? 'oldest-first' : 'newest-first'
+  menuOpen.value = false
 }
 
 // ── Entry detail ───────────────────────────────────────────────────────────
@@ -421,6 +422,7 @@ async function handleSignOut() {
 .ledger-header__sync-label {
   font-size: var(--font-size-xs);
 }
+.ledger-header__sync--synced  .ledger-header__sync-label { color: var(--color-mint); }
 .ledger-header__sync--offline .ledger-header__sync-label { color: var(--color-sand); }
 .ledger-header__sync--error   .ledger-header__sync-label { color: var(--color-error); }
 

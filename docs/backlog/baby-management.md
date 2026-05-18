@@ -6,6 +6,8 @@ switching babies or adding a new baby from the UI.
 A future phase must implement:
 - **Add baby** — create a new baby document under the family, set it as active.
 - **Switch active baby** — let the caregiver change which baby the ledger shows.
+- **Archive baby** — soft-archive a baby record without deleting; archived babies are excluded from the active list but remain readable.
+- **Baby settings** — save per-baby settings (nickname, birth date, animal key, usual bottle amount) from a dedicated Baby Settings screen.
 - **Show active baby nickname** — the header pill should display `activeBaby.nickname`
   (already read from Firestore; no schema change needed).
 - **Family/workspace label** — keep this in Settings or a profile view, not in the main ledger header.
