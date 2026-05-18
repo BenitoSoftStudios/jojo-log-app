@@ -1,5 +1,4 @@
-<!-- Summary Chips — today / 7-day / this-month totals and feed count.
-     Phase 2: props only. Phase 3+ wires useStats composable. -->
+<!-- Summary Chips — today / 7-day / this-month totals and feed count. -->
 <template>
   <div class="summary-chips">
     <div class="chip">
@@ -16,7 +15,7 @@
     </div>
     <div class="chip">
       <span class="chip-value">{{ feedCount }}</span>
-      <span class="chip-label">Feeds</span>
+      <span class="chip-label">Feeds Today</span>
     </div>
   </div>
 </template>
@@ -48,11 +47,8 @@ const monthDisplay    = computed(() => formatMl(props.monthMl))
 .summary-chips {
   display: flex;
   gap: var(--space-2);
-  overflow-x: auto;
-  scrollbar-width: none;
   padding: var(--space-3) 0;
 }
-.summary-chips::-webkit-scrollbar { display: none; }
 
 .chip {
   display: flex;
@@ -61,21 +57,25 @@ const monthDisplay    = computed(() => formatMl(props.monthMl))
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-md);
-  padding: var(--space-2) var(--space-3);
-  min-width: 72px;
-  flex-shrink: 0;
+  padding: var(--space-2) var(--space-2);
+  flex: 1;
+  min-width: 0;
   gap: 2px;
 }
 
 .chip-value {
-  font-size: var(--font-size-sm);
+  font-size: var(--font-size-xs);
   font-weight: var(--font-weight-semibold);
   color: var(--color-text);
   white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .chip-label {
-  font-size: var(--font-size-xs);
+  font-size: 0.625rem;
   color: var(--color-text-faint);
+  white-space: nowrap;
 }
 </style>

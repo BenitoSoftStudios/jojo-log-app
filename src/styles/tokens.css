@@ -21,6 +21,7 @@
   --color-incomplete:  #e8a020;   /* amber — incomplete entry warning */
   --color-error:       #c94040;   /* red — errors */
   --color-success:     #4a9e6e;   /* darker mint — success states */
+  --color-gold:        #f0a020;   /* gold — vitamin D active */
 
   /* Diaper indicator colours */
   --color-diaper-w:    #6aabcf;   /* blue — wet */
@@ -69,13 +70,13 @@
   --ease-out:        cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
   /* ── Layout ──────────────────────────────────── */
-  --header-height:   56px;
+  --header-height:   68px;
   --max-width:       480px;  /* mobile-first; centred on wider screens */
   --bottom-bar-height: 72px;
 
   /* ── Ledger row hierarchy colours ───────────── */
   --color-row-month: var(--color-lavender-soft); /* soft lavender — month headers */
-  --color-row-week:  var(--color-mint-soft);    /* mint teal — week segment headers */
-  --color-row-day:   var(--color-sand-soft);    /* sand beige — day headers */
-  --color-row-entry: var(--color-surface);      /* white — individual entry rows */
+  --color-row-week:  var(--color-mint-soft);     /* mint teal — week segment headers */
+  --color-row-day:   #fdf8f3;                    /* warm cream — day headers */
+  --color-row-entry: #fefcf8;                    /* off-white beige — entry rows */
 }

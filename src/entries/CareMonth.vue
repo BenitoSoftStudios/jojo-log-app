@@ -22,6 +22,7 @@
         :month-key="month.monthKey"
         :is-open="openWeekKeys.has(`${month.monthKey}:${week.weekStartDate}`)"
         :open-days="openDays"
+        :sort-order="sortOrder"
         @toggle-week="emit('toggle-week', month.monthKey, week.weekStartDate)"
         @toggle-day="(d) => emit('toggle-day', d)"
         @add-entry="(d) => emit('add-entry', d)"
@@ -41,6 +42,7 @@ const props = defineProps({
   openMonths:   { type: Object,  required: true },  // Set<monthKey>
   openWeekKeys: { type: Object,  required: true },  // Set<`${monthKey}:${weekStartDate}`>
   openDays:     { type: Object,  required: true },  // Set<date>
+  sortOrder:    { type: String,  default: 'newest-first' },
 })
 const emit = defineEmits(['toggle-month', 'toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
 

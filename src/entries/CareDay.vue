@@ -10,16 +10,16 @@
       <span class="care-day__label">{{ day.label }}</span>
       <span
         v-if="day.hasIncomplete"
-        class="incomplete-dot care-day__incomplete"
-        aria-label="Incomplete entries"
-      />
+        class="care-day__incomplete-label"
+        aria-label="Has incomplete entries"
+      >⚠ incomplete</span>
       <span class="care-day__ml text-soft text-sm">{{ day.totalMl }} mL</span>
       <span class="care-day__chevron" :class="{ 'care-day__chevron--open': isOpen }">›</span>
     </button>
 
     <div v-if="isOpen" class="care-day__body">
       <CareEntryRow
-        v-for="entry in day.entries"
+        v-for="entry in sortedEntries"
         :key="entry.id"
         :entry="entry"
         @update="(id, changes) => emit('update-entry', id, changes)"
@@ -33,13 +33,21 @@
 </template>
 
 <script setup>
+import { computed } from 'vue'
 import CareEntryRow from './CareEntryRow.vue'
 
-defineProps({
-  day:    { type: Object,  required: true },
-  isOpen: { type: Boolean, default: false },
+const props = defineProps({
+  day:       { type: Object,  required: true },
+  isOpen:    { type: Boolean, default: false },
+  sortOrder: { type: String,  default: 'newest-first' },
 })
 const emit = defineEmits(['toggle', 'add-entry', 'update-entry', 'open-detail'])
+
+const sortedEntries = computed(() =>
+  props.sortOrder === 'newest-first'
+    ? [...props.day.entries].reverse()
+    : props.day.entries
+)
 </script>
 
 <style scoped>
@@ -74,7 +82,10 @@ const emit = defineEmits(['toggle', 'add-entry', 'update-entry', 'open-detail'])
   text-align: left;
 }
 
-.care-day__incomplete {
+.care-day__incomplete-label {
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-error);
   flex-shrink: 0;
 }
 

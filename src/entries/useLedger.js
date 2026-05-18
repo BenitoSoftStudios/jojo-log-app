@@ -7,6 +7,11 @@ import { weekOf } from '@/utils/weekUtils.js'
 
 // Module-level collapse state — persists across re-renders, resets on baby switch.
 const _openMonths   = ref(new Set())
+
+// Display-only sort order — non-sensitive UI preference, safe for localStorage.
+const _SORT_KEY = 'jojo_entrySortOrder'
+const _entrySortOrder = ref(localStorage.getItem(_SORT_KEY) ?? 'newest-first')
+watch(_entrySortOrder, (v) => localStorage.setItem(_SORT_KEY, v))
 const _openWeekKeys = ref(new Set())   // key: `${monthKey}:${weekStartDate}`
 const _openDays     = ref(new Set())   // multiple days may be open simultaneously
 
@@ -122,9 +127,10 @@ export function useLedger() {
     grouped,
     stats,
     mostRecentDate,
-    openMonths:   _openMonths,
-    openWeekKeys: _openWeekKeys,
-    openDays:     _openDays,
+    openMonths:     _openMonths,
+    openWeekKeys:   _openWeekKeys,
+    openDays:       _openDays,
+    entrySortOrder: _entrySortOrder,
     toggleMonth,
     toggleWeek,
     toggleDay,

@@ -1,8 +1,9 @@
 <!-- Inline-editable entry row. Each field saves immediately on change/blur.
      Layout: two lines.
        Line 1: incomplete dot · time · mL · diaper selector (W P WP -) · details button
-       Line 2: symbol toggles ☀ Rx ★ · notes indicator
-     Notes are not shown inline — see EntryDetailSheet. -->
+       Line 2: symbol toggles ☀ Rx ★+N · notes indicator · save feedback
+     Notes are not shown inline — see EntryDetailSheet.
+     Tummy time: count model (0–9); tap cycles; +N badge when active. -->
 <template>
   <div class="entry-row" :class="{ 'entry-row--incomplete': incomplete }">
 
@@ -26,6 +27,7 @@
       <div class="entry-row__ml-wrap">
         <input
           class="entry-row__ml"
+          :class="{ 'entry-row__ml--null': entry.amountMl === null }"
           type="number"
           min="0"
           step="1"
@@ -39,7 +41,12 @@
       </div>
 
       <!-- Diaper selector — four visible tap buttons -->
-      <div class="entry-row__diaper-group" role="group" aria-label="Diaper">
+      <div
+        class="entry-row__diaper-group"
+        :class="{ 'entry-row__diaper-group--null': entry.diaper === null }"
+        role="group"
+        aria-label="Diaper"
+      >
         <button
           v-for="opt in DIAPER_OPTIONS"
           :key="opt.value"
@@ -63,39 +70,56 @@
 
     <!-- ── Line 2: symbol toggles ─────────────────────────────────────── -->
     <div class="entry-row__line2">
+
+      <!-- Vitamin D — gold when on -->
       <button
         class="sym-btn"
-        :class="{ 'sym-btn--on': entry.vitaminD }"
+        :class="{ 'sym-btn--vitd-on': entry.vitaminD }"
         type="button"
         :aria-label="entry.vitaminD ? 'Vitamin D on — tap to turn off' : 'Vitamin D off — tap to turn on'"
-        @click="emit('update', entry.id, { vitaminD: !entry.vitaminD })"
+        @click="emitUpdate({ vitaminD: !entry.vitaminD })"
       >☀</button>
+
+      <!-- Medication — mint when on -->
       <button
         class="sym-btn"
-        :class="{ 'sym-btn--on': entry.medication }"
+        :class="{ 'sym-btn--med-on': entry.medication }"
         type="button"
         :aria-label="entry.medication ? 'Medication on — tap to turn off' : 'Medication off — tap to turn on'"
-        @click="emit('update', entry.id, { medication: !entry.medication })"
+        @click="emitUpdate({ medication: !entry.medication })"
       >Rx</button>
+
+      <!-- Tummy Time — lavender star + count badge; cycles 0–9 then back to 0 -->
       <button
-        class="sym-btn"
-        :class="{ 'sym-btn--on': tummyTime }"
+        class="sym-btn sym-btn--tt"
+        :class="{ 'sym-btn--tt-on': tummyTimeCount > 0 }"
         type="button"
-        :aria-label="tummyTime ? 'Tummy time on — tap to turn off' : 'Tummy time off — tap to turn on'"
-        @click="emit('update', entry.id, { tummyTime: !tummyTime })"
-      >★</button>
+        :aria-label="`Tummy time: ${tummyTimeCount} — tap to cycle`"
+        @click="onTummyTap"
+      >★<span v-if="tummyTimeCount > 0" class="tt-badge">+{{ tummyTimeCount }}</span></button>
+
+      <!-- Notes compact indicator -->
       <span
         v-if="hasNotes"
         class="sym-notes text-faint text-xs"
         aria-label="Has notes"
       >✎ notes</span>
+
+      <!-- Save feedback — appears briefly after each write -->
+      <span
+        v-if="saveFlash"
+        class="sym-save"
+        :class="`sym-save--${saveFlash}`"
+        aria-live="polite"
+      >{{ saveFlash === 'saving' ? '…' : saveFlash === 'saved' ? '✓' : '!' }}</span>
+
     </div>
 
   </div>
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { isIncomplete } from '@/utils/entryUtils.js'
 
 const props = defineProps({
@@ -110,10 +134,33 @@ const DIAPER_OPTIONS = [
   { value: '-',  display: '-',  label: 'No diaper change' },
 ]
 
-const incomplete = computed(() => isIncomplete(props.entry))
-const tummyTime  = computed(() => props.entry.tummyTime ?? false)
-const hasNotes   = computed(() => !!(props.entry.notes))
-const mlDisplay  = computed(() => props.entry.amountMl ?? '')
+const incomplete     = computed(() => isIncomplete(props.entry))
+const tummyTimeCount = computed(() =>
+  props.entry.tummyTimeCount ?? (props.entry.tummyTime ? 1 : 0)
+)
+const hasNotes  = computed(() => !!(props.entry.notes))
+const mlDisplay = computed(() => props.entry.amountMl ?? '')
+
+// ── Save feedback ──────────────────────────────────────────────────────────
+
+const saveFlash = ref('')
+let _saveTimer  = null
+
+function emitUpdate(changes) {
+  clearTimeout(_saveTimer)
+  saveFlash.value = 'saving'
+  emit('update', props.entry.id, changes)
+}
+
+watch(() => props.entry, () => {
+  if (saveFlash.value === 'saving') {
+    saveFlash.value = 'saved'
+    clearTimeout(_saveTimer)
+    _saveTimer = setTimeout(() => { saveFlash.value = '' }, 900)
+  }
+})
+
+// ── Field handlers ─────────────────────────────────────────────────────────
 
 function diaperBtnClass(value) {
   const active = props.entry.diaper === value
@@ -127,13 +174,18 @@ function diaperBtnClass(value) {
 }
 
 function selectDiaper(value) {
-  emit('update', props.entry.id, { diaper: value })
+  emitUpdate({ diaper: value })
+}
+
+function onTummyTap() {
+  const next = tummyTimeCount.value >= 9 ? 0 : tummyTimeCount.value + 1
+  emitUpdate({ tummyTimeCount: next })
 }
 
 function onTimeBlur(e) {
   const val = e.target.value
   if (val && val !== props.entry.entryTime) {
-    emit('update', props.entry.id, { entryTime: val })
+    emitUpdate({ entryTime: val })
   }
 }
 
@@ -141,12 +193,12 @@ function onMlBlur(e) {
   const raw = e.target.value.trim()
   if (raw === '') {
     if (props.entry.amountMl !== null) {
-      emit('update', props.entry.id, { amountMl: null })
+      emitUpdate({ amountMl: null })
     }
   } else {
     const n = parseInt(raw, 10)
     if (!isNaN(n) && n !== props.entry.amountMl) {
-      emit('update', props.entry.id, { amountMl: n })
+      emitUpdate({ amountMl: n })
     }
   }
 }
@@ -211,10 +263,17 @@ function onMlBlur(e) {
   padding: var(--space-1) 0;
   text-align: right;
   -moz-appearance: textfield;
+  border-radius: var(--radius-sm);
+  transition: border-color var(--duration-fast), background var(--duration-fast);
 }
 .entry-row__ml::-webkit-inner-spin-button,
 .entry-row__ml::-webkit-outer-spin-button {
   -webkit-appearance: none;
+}
+.entry-row__ml--null {
+  border: 1.5px solid var(--color-error);
+  background: rgba(201, 64, 64, 0.05);
+  padding: var(--space-1) 2px;
 }
 
 .entry-row__ml-unit {
@@ -228,6 +287,12 @@ function onMlBlur(e) {
   display: flex;
   gap: 3px;
   flex-shrink: 0;
+  border-radius: var(--radius-sm);
+  transition: outline var(--duration-fast);
+}
+.entry-row__diaper-group--null {
+  outline: 1.5px solid var(--color-error);
+  outline-offset: 2px;
 }
 
 .diaper-btn {
@@ -331,18 +396,50 @@ function onMlBlur(e) {
   display: flex;
   align-items: center;
   justify-content: center;
+  gap: 1px;
   flex-shrink: 0;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  transition: color var(--duration-fast);
 }
 
-.sym-btn--on {
+/* Vitamin D — gold when active */
+.sym-btn--vitd-on {
+  color: var(--color-gold);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Medication — mint when active */
+.sym-btn--med-on {
   color: var(--color-mint);
   font-weight: var(--font-weight-semibold);
+}
+
+/* Tummy time — lavender when active */
+.sym-btn--tt-on {
+  color: var(--color-lavender);
+  font-weight: var(--font-weight-semibold);
+}
+
+.tt-badge {
+  font-size: 9px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
 }
 
 .sym-notes {
   padding: var(--space-1);
   line-height: 1;
 }
+
+/* Save feedback */
+.sym-save {
+  margin-left: auto;
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  transition: color var(--duration-fast);
+}
+.sym-save--saving { color: var(--color-text-faint); }
+.sym-save--saved  { color: var(--color-success); }
+.sym-save--error  { color: var(--color-error); }
 </style>

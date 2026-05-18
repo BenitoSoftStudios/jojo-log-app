@@ -18,6 +18,7 @@
         :key="day.date"
         :day="day"
         :is-open="openDays.has(day.date)"
+        :sort-order="sortOrder"
         @toggle="emit('toggle-day', day.date)"
         @add-entry="(d) => emit('add-entry', d)"
         @update-entry="(id, changes) => emit('update-entry', id, changes)"
@@ -35,6 +36,7 @@ defineProps({
   monthKey:  { type: String,  required: true },
   isOpen:    { type: Boolean, default: false },
   openDays:  { type: Set,     required: true },
+  sortOrder: { type: String,  default: 'newest-first' },
 })
 const emit = defineEmits(['toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
 </script>

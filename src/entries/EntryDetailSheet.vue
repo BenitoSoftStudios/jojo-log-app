@@ -25,14 +25,14 @@
         </div>
       </div>
 
-      <!-- Boolean indicators (shown only when true) -->
+      <!-- Indicators (shown only when active) -->
       <div
-        v-if="entry.vitaminD || entry.medication || tummyTime"
+        v-if="entry.vitaminD || entry.medication || tummyTimeCount > 0"
         class="detail-section detail-section--indicators"
       >
-        <span v-if="entry.vitaminD"   class="detail-indicator">☀ Vitamin D</span>
-        <span v-if="entry.medication" class="detail-indicator">Rx Medication</span>
-        <span v-if="tummyTime"        class="detail-indicator">★ Tummy Time</span>
+        <span v-if="entry.vitaminD"      class="detail-indicator detail-indicator--vitd">☀ Vitamin D</span>
+        <span v-if="entry.medication"    class="detail-indicator detail-indicator--med">Rx Medication</span>
+        <span v-if="tummyTimeCount > 0"  class="detail-indicator detail-indicator--tt">★ Tummy Time: {{ tummyTimeCount }}</span>
       </div>
 
       <!-- Notes — the one editable field in this sheet -->
@@ -111,7 +111,11 @@ const sheetOpen = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
-const tummyTime = computed(() => props.entry?.tummyTime ?? false)
+const tummyTimeCount = computed(() => {
+  const e = props.entry
+  if (!e) return 0
+  return e.tummyTimeCount ?? (e.tummyTime ? 1 : 0)
+})
 
 const diaperClass = computed(() => {
   const d = props.entry?.diaper
@@ -214,6 +218,9 @@ function formatTs(ts) {
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-full);
 }
+.detail-indicator--vitd { color: var(--color-gold); }
+.detail-indicator--med  { color: var(--color-mint); }
+.detail-indicator--tt   { color: var(--color-lavender); }
 
 .detail-notes {
   width: 100%;
