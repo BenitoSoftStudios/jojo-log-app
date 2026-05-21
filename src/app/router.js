@@ -1,6 +1,7 @@
 import { watch }      from 'vue'
 import { createRouter, createWebHistory } from 'vue-router'
 
+import LandingView           from '@/landing/LandingView.vue'
 import LoginView             from '@/auth/LoginView.vue'
 import SetupProfileView      from '@/auth/SetupProfileView.vue'
 import FamilySetupView       from '@/families/FamilySetupView.vue'
@@ -19,6 +20,12 @@ import { authReady, currentUser } from '@/auth/useAuth.js'
 import { findFamilyIdForUser, getMember } from '@/families/familyService.js'
 
 const routes = [
+  {
+    path: '/landing',
+    name: 'landing',
+    component: LandingView,
+    meta: { requiresAuth: false }
+  },
   {
     path: '/login',
     name: 'login',
@@ -115,14 +122,14 @@ router.beforeEach(async (to) => {
 
   const user = currentUser.value
 
-  // 2. Public routes (requiresAuth: false) — redirect signed-in users away from /login
+  // 2. Public routes (requiresAuth: false) — redirect signed-in users away from /login and /landing
   if (to.meta.requiresAuth === false) {
-    if (user && to.name === 'login') return '/'
+    if (user && (to.name === 'login' || to.name === 'landing')) return '/'
     return true
   }
 
-  // 3. All other routes require auth
-  if (!user) return '/login'
+  // 3. All other routes require auth — unauthenticated users see the landing page
+  if (!user) return '/landing'
 
   // 4. Setup routes (/setup-profile, /family-setup) are open once authenticated
   if (to.meta.isSetupRoute) return true

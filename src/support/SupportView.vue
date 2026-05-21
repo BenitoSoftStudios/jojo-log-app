@@ -25,13 +25,18 @@
         Entirely optional. The app is free either way.
       </p>
       <a
+        v-if="kofiUrl"
         class="donate-btn"
-        href="https://ko-fi.com"
+        :href="kofiUrl"
         target="_blank"
         rel="noopener noreferrer"
       >
         ☕ Buy me a coffee on Ko-fi
       </a>
+      <p v-else class="text-faint text-sm">
+        Donation link coming soon.
+        Sign up at <strong>ko-fi.com</strong> and set <code>VITE_KOFI_URL</code> in your environment.
+      </p>
     </AppCard>
 
     <AppCard>
@@ -52,6 +57,8 @@
 <script setup>
 import AppLayout from '@/ui/AppLayout.vue'
 import AppCard from '@/ui/AppCard.vue'
+
+const kofiUrl = import.meta.env.VITE_KOFI_URL || ''
 </script>
 
 <style scoped>
