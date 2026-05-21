@@ -4,6 +4,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView             from '@/auth/LoginView.vue'
 import SetupProfileView      from '@/auth/SetupProfileView.vue'
 import FamilySetupView       from '@/families/FamilySetupView.vue'
+import JoinFamilyView        from '@/families/JoinFamilyView.vue'
 import CareLedgerView        from '@/entries/CareLedgerView.vue'
 import GraphView             from '@/charts/GraphView.vue'
 import RecentlyDeletedView   from '@/entries/RecentlyDeletedView.vue'
@@ -11,6 +12,7 @@ import ManageCaregiversView  from '@/families/ManageCaregiversView.vue'
 import BabySettingsView      from '@/babies/BabySettingsView.vue'
 import SettingsView          from '@/settings/SettingsView.vue'
 import HelpView              from '@/help/HelpView.vue'
+import SupportView           from '@/support/SupportView.vue'
 
 // Imported directly (not via useAuth()) so the guard can use them outside component setup
 import { authReady, currentUser } from '@/auth/useAuth.js'
@@ -33,6 +35,12 @@ const routes = [
     path: '/family-setup',
     name: 'family-setup',
     component: FamilySetupView,
+    meta: { requiresAuth: true, isSetupRoute: true }
+  },
+  {
+    path: '/join',
+    name: 'join',
+    component: JoinFamilyView,
     meta: { requiresAuth: true, isSetupRoute: true }
   },
   {
@@ -75,6 +83,12 @@ const routes = [
     path: '/help',
     name: 'help',
     component: HelpView,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/support',
+    name: 'support',
+    component: SupportView,
     meta: { requiresAuth: false }
   },
   {

@@ -1,5 +1,4 @@
-<!-- Settings — display unit, timezone, other family preferences.
-     Phase 2: layout scaffold. Phase 7 wires familyService.updateFamily. -->
+<!-- Settings — display unit wired to Firestore via familyService.updateFamily. -->
 <template>
   <AppLayout>
     <template #header>
@@ -10,18 +9,19 @@
     <AppCard>
       <h2 class="section-heading">Display unit</h2>
       <div class="unit-options">
-        <label class="radio-option" :class="{ active: unit === 'ml' }">
-          <input v-model="unit" type="radio" value="ml" />
+        <label class="radio-option" :class="{ active: localUnit === 'ml' }">
+          <input v-model="localUnit" type="radio" value="ml" @change="saveUnit" />
           mL
         </label>
-        <label class="radio-option" :class="{ active: unit === 'floz' }">
-          <input v-model="unit" type="radio" value="floz" />
+        <label class="radio-option" :class="{ active: localUnit === 'floz' }">
+          <input v-model="localUnit" type="radio" value="floz" @change="saveUnit" />
           fl oz
         </label>
       </div>
+      <p v-if="saveError" class="field-error text-sm" role="alert">{{ saveError }}</p>
+      <p v-if="saveSuccess" class="field-success text-sm">Saved.</p>
       <p class="text-faint text-xs">
-        Amounts are always stored in mL. This changes how they are displayed.
-        fl oz display wires in Phase 7.
+        Amounts are always stored in mL. This changes how they are displayed and entered.
       </p>
     </AppCard>
 
@@ -29,19 +29,43 @@
       <h2 class="section-heading">Timezone</h2>
       <p class="text-soft text-sm">Eastern Time (America/Toronto)</p>
       <p class="text-faint text-xs">
-        Timezone configuration wires in Phase 7.
+        Timezone is set at account creation and cannot be changed here yet.
       </p>
     </AppCard>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import AppLayout from '@/ui/AppLayout.vue'
-import AppCard from '@/ui/AppCard.vue'
+import AppCard   from '@/ui/AppCard.vue'
+import { family, useFamily } from '@/families/useFamily.js'
+import { updateFamily } from '@/families/familyService.js'
 
-// Phase 2 local placeholder — replaced by useFamily.family.unitPreference in Phase 7
-const unit = ref('ml')
+const { familyId } = useFamily()
+
+const localUnit   = ref(family.value?.unitPreference ?? 'ml')
+const saveError   = ref('')
+const saveSuccess = ref(false)
+
+watch(family, (f) => {
+  if (f?.unitPreference) localUnit.value = f.unitPreference
+}, { immediate: true })
+
+async function saveUnit() {
+  saveError.value   = ''
+  saveSuccess.value = false
+  if (!familyId.value) return
+
+  try {
+    await updateFamily(familyId.value, { unitPreference: localUnit.value })
+    saveSuccess.value = true
+    setTimeout(() => { saveSuccess.value = false }, 2000)
+  } catch (e) {
+    console.error('[SettingsView] updateFamily failed', e)
+    saveError.value = 'Could not save. Check your connection.'
+  }
+}
 </script>
 
 <style scoped>
@@ -90,6 +114,9 @@ const unit = ref('ml')
   background: var(--color-mint-soft);
   color: var(--color-success);
 }
+
+.field-error   { color: var(--color-error); margin-bottom: var(--space-2); }
+.field-success { color: var(--color-success); margin-bottom: var(--space-2); }
 
 :deep(.page-container) { display: flex; flex-direction: column; gap: var(--space-4); }
 </style>

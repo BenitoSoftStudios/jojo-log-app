@@ -127,11 +127,13 @@
     <AppSheet v-model="menuOpen" title="Menu">
       <nav class="menu-nav">
         <router-link class="menu-item" to="/graphs"            @click="menuOpen = false">Graph</router-link>
+        <button class="menu-item" type="button"                @click="handleExportCsv">Export CSV</button>
         <router-link class="menu-item" to="/recently-deleted"  @click="menuOpen = false">Recently Deleted</router-link>
         <router-link class="menu-item" to="/manage-caregivers" @click="menuOpen = false">Manage Caregivers</router-link>
         <router-link class="menu-item" to="/baby-settings"     @click="menuOpen = false">Baby Settings</router-link>
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
         <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
+        <router-link class="menu-item" to="/support"           @click="menuOpen = false">Support this app ☕</router-link>
         <hr class="menu-divider" />
         <!-- Entry sort order preference -->
         <button class="menu-item menu-sort-row" type="button" @click="toggleSortOrder">
@@ -160,6 +162,7 @@ import { useEntries } from '@/entries/useEntries.js'
 import { useLedger }  from '@/entries/useLedger.js'
 import { buildNewEntryDefaults, buildStartNextDayEntry } from '@/utils/entryUtils.js'
 import { todayString } from '@/utils/dateUtils.js'
+import { buildCsvString, downloadCsv } from '@/export/csvExportService.js'
 
 const router = useRouter()
 
@@ -333,6 +336,15 @@ async function handleDeleteEntry(entryId) {
     console.error('[CareLedgerView] softDeleteEntry failed', e)
     setWriteError('Failed to delete entry. Check your connection.')
   }
+}
+
+function handleExportCsv() {
+  menuOpen.value = false
+  const baby = activeBaby.value
+  const nickname = baby?.nickname ?? baby?.name ?? 'baby'
+  const csv = buildCsvString(entries.value, nickname)
+  const date = todayString()
+  downloadCsv(csv, `jojo-log-${nickname.toLowerCase().replace(/\s+/g, '-')}-${date}.csv`)
 }
 
 async function handleSignOut() {

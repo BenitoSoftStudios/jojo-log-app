@@ -92,6 +92,11 @@
         Display label is missing.
         <router-link to="/setup-profile">Go back and set it.</router-link>
       </p>
+
+      <p class="alt-action text-soft text-sm">
+        Have an invite code?
+        <router-link to="/join">Join an existing family instead.</router-link>
+      </p>
     </div>
   </div>
 </template>
@@ -285,4 +290,9 @@ async function handleSubmit() {
 .missing-label-warn a {
   color: var(--color-mint);
 }
+
+.alt-action {
+  text-align: center;
+}
+.alt-action a { color: var(--color-mint); }
 </style>
