@@ -52,7 +52,7 @@
       <p v-if="writeError" class="write-error text-sm" role="alert">{{ writeError }}</p>
 
       <!-- Ledger hierarchy -->
-      <div v-if="grouped.months.length === 0" class="ledger-empty">
+      <div v-if="displayGrouped.months.length === 0" class="ledger-empty">
         <p class="text-faint text-sm">
           No entries yet.<br />
           Tap <strong>+ Day</strong> to create the first entry.
@@ -60,7 +60,7 @@
       </div>
       <div v-else class="ledger">
         <CareMonth
-          v-for="month in grouped.months"
+          v-for="month in displayGrouped.months"
           :key="month.monthKey"
           :month="month"
           :open-months="openMonths"
@@ -168,7 +168,7 @@ const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily, cl
 const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
         clearBabies }                                                                        = useBabies()
 const { entries, syncStatus, createEntry, updateEntry, softDeleteEntry }                     = useEntries()
-const { grouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
+const { displayGrouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
         entrySortOrder, toggleMonth, toggleWeek, toggleDay, openDay }                        = useLedger()
 
 const menuOpen         = ref(false)

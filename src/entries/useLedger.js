@@ -1,6 +1,7 @@
 import { ref, computed, watch } from 'vue'
 import { entries } from '@/entries/useEntries.js'
 import { groupEntries } from '@/utils/ledgerGrouper.js'
+import { applyLedgerSortOrder } from '@/utils/ledgerSort.js'
 import { calculateStats } from '@/utils/statsCalculator.js'
 import { todayString } from '@/utils/dateUtils.js'
 import { weekOf } from '@/utils/weekUtils.js'
@@ -9,16 +10,19 @@ import { weekOf } from '@/utils/weekUtils.js'
 const _openMonths   = ref(new Set())
 
 // Display-only sort order — non-sensitive UI preference, safe for localStorage.
+// Only 'newest-first' and 'oldest-first' are valid; anything else falls back to 'newest-first'.
 const _SORT_KEY = 'jojo_entrySortOrder'
-const _entrySortOrder = ref(localStorage.getItem(_SORT_KEY) ?? 'newest-first')
+const _storedSort = localStorage.getItem(_SORT_KEY)
+const _entrySortOrder = ref(_storedSort === 'oldest-first' ? 'oldest-first' : 'newest-first')
 watch(_entrySortOrder, (v) => localStorage.setItem(_SORT_KEY, v))
 const _openWeekKeys = ref(new Set())   // key: `${monthKey}:${weekStartDate}`
 const _openDays     = ref(new Set())   // multiple days may be open simultaneously
 
 let _initialized = false
 
-const grouped = computed(() => groupEntries(entries.value))
-const stats   = computed(() => calculateStats(entries.value, todayString()))
+const grouped        = computed(() => groupEntries(entries.value))
+const displayGrouped = computed(() => applyLedgerSortOrder(grouped.value, _entrySortOrder.value))
+const stats          = computed(() => calculateStats(entries.value, todayString()))
 
 const mostRecentDate = computed(() => {
   const months = grouped.value.months
@@ -124,7 +128,7 @@ function openDay(date) {
 
 export function useLedger() {
   return {
-    grouped,
+    displayGrouped,
     stats,
     mostRecentDate,
     openMonths:     _openMonths,
