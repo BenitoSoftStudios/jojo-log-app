@@ -7,9 +7,17 @@
       <div class="ledger-header">
         <!-- Row 1: baby identity + action buttons -->
         <div class="ledger-header__row">
-          <span class="ledger-header__baby">🦆 {{ babyLabel }}</span>
+          <BabySwitcher
+            v-if="activeBabies.length > 1"
+            :babies="activeBabies"
+            :active-baby-id="activeBabyId"
+            @select="selectBaby"
+          />
+          <span v-else class="ledger-header__baby">
+            {{ activeBaby ? '🦆 ' + activeBaby.nickname : 'No active baby' }}
+          </span>
           <div class="ledger-header__actions">
-            <button class="header-day-btn" type="button" @click="handleOpenDayPicker">+ Day</button>
+            <button v-if="activeBaby" class="header-day-btn" type="button" @click="handleOpenDayPicker">+ Day</button>
             <button class="menu-btn" aria-label="Menu" @click="menuOpen = true">☰</button>
           </div>
         </div>
@@ -41,40 +49,48 @@
         <span v-if="isOwner"> · Owner</span>
       </div>
 
-      <SummaryChips
-        :today-ml="stats.todayMl"
-        :seven-day-ml="stats.sevenDayMl"
-        :month-ml="stats.monthMl"
-        :feed-count="stats.feedCount"
-      />
-
-      <!-- Write error banner -->
-      <p v-if="writeError" class="write-error text-sm" role="alert">{{ writeError }}</p>
-
-      <!-- Ledger hierarchy -->
-      <div v-if="displayGrouped.months.length === 0" class="ledger-empty">
-        <p class="text-faint text-sm">
-          No entries yet.<br />
-          Tap <strong>+ Day</strong> to create the first entry.
-        </p>
+      <!-- No active baby -->
+      <div v-if="!activeBaby" class="ledger-empty">
+        <p class="text-faint text-sm">No active baby.</p>
+        <p v-if="isOwner" class="text-faint text-sm">Use the menu to add one.</p>
       </div>
-      <div v-else class="ledger">
-        <CareMonth
-          v-for="month in displayGrouped.months"
-          :key="month.monthKey"
-          :month="month"
-          :open-months="openMonths"
-          :open-week-keys="openWeekKeys"
-          :open-days="openDays"
-          :sort-order="entrySortOrder"
-          @toggle-month="toggleMonth"
-          @toggle-week="(mk, ws) => toggleWeek(mk, ws)"
-          @toggle-day="toggleDay"
-          @add-entry="addEntry"
-          @update-entry="updateEntry"
-          @open-detail="handleOpenDetail"
+
+      <template v-else>
+        <SummaryChips
+          :today-ml="stats.todayMl"
+          :seven-day-ml="stats.sevenDayMl"
+          :month-ml="stats.monthMl"
+          :feed-count="stats.feedCount"
         />
-      </div>
+
+        <!-- Write error banner -->
+        <p v-if="writeError" class="write-error text-sm" role="alert">{{ writeError }}</p>
+
+        <!-- Ledger hierarchy -->
+        <div v-if="displayGrouped.months.length === 0" class="ledger-empty">
+          <p class="text-faint text-sm">
+            No entries yet.<br />
+            Tap <strong>+ Day</strong> to create the first entry.
+          </p>
+        </div>
+        <div v-else class="ledger">
+          <CareMonth
+            v-for="month in displayGrouped.months"
+            :key="month.monthKey"
+            :month="month"
+            :open-months="openMonths"
+            :open-week-keys="openWeekKeys"
+            :open-days="openDays"
+            :sort-order="entrySortOrder"
+            @toggle-month="toggleMonth"
+            @toggle-week="(mk, ws) => toggleWeek(mk, ws)"
+            @toggle-day="toggleDay"
+            @add-entry="addEntry"
+            @update-entry="updateEntry"
+            @open-detail="handleOpenDetail"
+          />
+        </div>
+      </template>
     </template>
 
     <!-- Entry Detail Sheet -->
@@ -123,6 +139,38 @@
       </div>
     </AppSheet>
 
+    <!-- Add baby sheet -->
+    <AppSheet v-model="addBabyOpen" title="Add Baby">
+      <div class="add-baby-form">
+        <div class="form-group">
+          <label class="form-label text-soft text-sm" for="add-nickname">Nickname</label>
+          <input
+            id="add-nickname"
+            v-model="newNickname"
+            type="text"
+            class="form-input"
+            placeholder="e.g. Jojo"
+            maxlength="40"
+          />
+        </div>
+        <div class="form-group">
+          <label class="form-label text-soft text-sm" for="add-birthdate">Birthdate (optional)</label>
+          <input
+            id="add-birthdate"
+            v-model="newBirthdate"
+            type="date"
+            class="form-input"
+          />
+        </div>
+        <p v-if="addBabyError" class="add-baby-error text-sm">{{ addBabyError }}</p>
+        <AppButton
+          :full="true"
+          :disabled="!newNickname.trim() || addBabySaving"
+          @click="handleAddBaby"
+        >{{ addBabySaving ? 'Adding…' : 'Add Baby' }}</AppButton>
+      </div>
+    </AppSheet>
+
     <!-- Hamburger menu sheet -->
     <AppSheet v-model="menuOpen" title="Menu">
       <nav class="menu-nav">
@@ -130,6 +178,7 @@
         <router-link class="menu-item" to="/recently-deleted"  @click="menuOpen = false">Recently Deleted</router-link>
         <router-link class="menu-item" to="/manage-caregivers" @click="menuOpen = false">Manage Caregivers</router-link>
         <router-link class="menu-item" to="/baby-settings"     @click="menuOpen = false">Baby Settings</router-link>
+        <button v-if="isOwner" class="menu-item" type="button" @click="openAddBaby">+ Add Baby</button>
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
         <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
         <hr class="menu-divider" />
@@ -150,9 +199,11 @@ import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout        from '@/ui/AppLayout.vue'
 import AppSheet         from '@/ui/AppSheet.vue'
+import AppButton        from '@/ui/AppButton.vue'
 import SummaryChips     from '@/entries/SummaryChips.vue'
 import CareMonth        from '@/entries/CareMonth.vue'
 import EntryDetailSheet from '@/entries/EntryDetailSheet.vue'
+import BabySwitcher     from '@/babies/BabySwitcher.vue'
 import { useAuth }          from '@/auth/useAuth.js'
 import { useFamily }        from '@/families/useFamily.js'
 import { useBabies }        from '@/babies/useBabies.js'
@@ -167,7 +218,7 @@ const router = useRouter()
 const { currentUser, signOut }                                                               = useAuth()
 const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily, clearFamily } = useFamily()
 const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
-        clearBabies }                                                                        = useBabies()
+        selectBaby, createBabyForFamily, clearBabies }                                       = useBabies()
 const { entries, syncStatus }                                                                = useEntries()
 const { displayGrouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
         entrySortOrder, toggleMonth, toggleWeek, toggleDay }                                 = useLedger()
@@ -178,6 +229,11 @@ const detailSheetOpen  = ref(false)
 const detailEntryId    = ref(null)
 const dayPickerOpen    = ref(false)
 const pickedCustomDate = ref('')
+const addBabyOpen      = ref(false)
+const newNickname      = ref('')
+const newBirthdate     = ref('')
+const addBabySaving    = ref(false)
+const addBabyError     = ref('')
 
 // ── Header clock ───────────────────────────────────────────────────────────
 
@@ -205,15 +261,39 @@ const headerTime = computed(() => {
   const s = String(_now.value.getSeconds()).padStart(2, '0')
   return `${h}:${m}:${s}`
 })
-const babyLabel = computed(() =>
-  activeBaby.value?.nickname ?? activeBaby.value?.name ?? '—'
-)
-
 // ── Sort order ─────────────────────────────────────────────────────────────
 
 function toggleSortOrder() {
   entrySortOrder.value = entrySortOrder.value === 'newest-first' ? 'oldest-first' : 'newest-first'
   menuOpen.value = false
+}
+
+// ── Add baby ───────────────────────────────────────────────────────────────
+
+function openAddBaby() {
+  menuOpen.value     = false
+  newNickname.value  = ''
+  newBirthdate.value = ''
+  addBabyError.value = ''
+  addBabyOpen.value  = true
+}
+
+async function handleAddBaby() {
+  if (!newNickname.value.trim()) return
+  addBabySaving.value = true
+  addBabyError.value  = ''
+  try {
+    await createBabyForFamily(
+      { nickname: newNickname.value.trim(), birthdate: newBirthdate.value || null },
+      currentUser.value?.uid
+    )
+    addBabyOpen.value = false
+  } catch (e) {
+    console.error('[CareLedgerView] addBaby failed', e)
+    addBabyError.value = 'Failed to add baby. Check your connection.'
+  } finally {
+    addBabySaving.value = false
+  }
 }
 
 // ── Entry detail ───────────────────────────────────────────────────────────
@@ -574,5 +654,45 @@ async function handleSignOut() {
   font-size: var(--font-size-sm);
   color: var(--color-mint);
   font-weight: var(--font-weight-medium);
+}
+
+/* ── Add baby form ─────────────────────────────────────────────────────── */
+
+.add-baby-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.form-label {
+  display: block;
+}
+
+.form-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-sizing: border-box;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: var(--color-mint);
+}
+
+.add-baby-error {
+  color: var(--color-error);
+  margin: 0;
 }
 </style>
