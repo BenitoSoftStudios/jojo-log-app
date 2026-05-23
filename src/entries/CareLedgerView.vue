@@ -70,8 +70,8 @@
           @toggle-month="toggleMonth"
           @toggle-week="(mk, ws) => toggleWeek(mk, ws)"
           @toggle-day="toggleDay"
-          @add-entry="handleAddEntry"
-          @update-entry="handleUpdateEntry"
+          @add-entry="addEntry"
+          @update-entry="updateEntry"
           @open-detail="handleOpenDetail"
         />
       </div>
@@ -81,7 +81,7 @@
     <EntryDetailSheet
       v-model="detailSheetOpen"
       :entry="detailEntry"
-      @save-notes="handleSaveNotes"
+      @save-notes="saveNotes"
       @delete="handleDeleteEntry"
     />
 
@@ -153,12 +153,13 @@ import AppSheet         from '@/ui/AppSheet.vue'
 import SummaryChips     from '@/entries/SummaryChips.vue'
 import CareMonth        from '@/entries/CareMonth.vue'
 import EntryDetailSheet from '@/entries/EntryDetailSheet.vue'
-import { useAuth }    from '@/auth/useAuth.js'
-import { useFamily }  from '@/families/useFamily.js'
-import { useBabies }  from '@/babies/useBabies.js'
-import { useEntries } from '@/entries/useEntries.js'
-import { useLedger }  from '@/entries/useLedger.js'
-import { buildNewEntryDefaults, buildStartNextDayEntry } from '@/utils/entryUtils.js'
+import { useAuth }          from '@/auth/useAuth.js'
+import { useFamily }        from '@/families/useFamily.js'
+import { useBabies }        from '@/babies/useBabies.js'
+import { useEntries }       from '@/entries/useEntries.js'
+import { useLedger }        from '@/entries/useLedger.js'
+import { useLedgerActions } from '@/entries/useLedgerActions.js'
+import { buildStartNextDayEntry } from '@/utils/entryUtils.js'
 import { todayString } from '@/utils/dateUtils.js'
 
 const router = useRouter()
@@ -167,17 +168,16 @@ const { currentUser, signOut }                                                  
 const { familyId, currentMember, isOwner, loading: familyLoading, loadFamily, clearFamily } = useFamily()
 const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
         clearBabies }                                                                        = useBabies()
-const { entries, syncStatus, createEntry, updateEntry, softDeleteEntry }                     = useEntries()
+const { entries, syncStatus }                                                                = useEntries()
 const { displayGrouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
-        entrySortOrder, toggleMonth, toggleWeek, toggleDay, openDay }                        = useLedger()
+        entrySortOrder, toggleMonth, toggleWeek, toggleDay }                                 = useLedger()
+const { writeError, createDay, addEntry, updateEntry, saveNotes, deleteEntry }               = useLedgerActions()
 
 const menuOpen         = ref(false)
 const detailSheetOpen  = ref(false)
 const detailEntryId    = ref(null)
 const dayPickerOpen    = ref(false)
 const pickedCustomDate = ref('')
-const writeError       = ref('')
-let   _writeErrorTimer = null
 
 // ── Header clock ───────────────────────────────────────────────────────────
 
@@ -239,14 +239,6 @@ const nextDayDate = computed(() => {
   return buildStartNextDayEntry(mostRecentDate.value, activeBaby.value).date
 })
 
-// ── Write error helper ─────────────────────────────────────────────────────
-
-function setWriteError(msg) {
-  writeError.value = msg
-  clearTimeout(_writeErrorTimer)
-  _writeErrorTimer = setTimeout(() => { writeError.value = '' }, 5000)
-}
-
 // ── + Day picker ───────────────────────────────────────────────────────────
 
 function handleOpenDayPicker() {
@@ -259,80 +251,19 @@ function handleOpenDayPicker() {
 async function doCreateDay(date) {
   if (!date) return
   dayPickerOpen.value = false
-  const defaults = buildNewEntryDefaults(null, activeBaby.value, null)
-  try {
-    await createEntry({
-      entryDate:      date,
-      entryTime:      defaults.entryTime,
-      amountMl:       null,
-      diaper:         null,
-      vitaminD:       false,
-      medication:     false,
-      tummyTime:      false,
-      tummyTimeCount: 0,
-      notes:          '',
-    })
-    openDay(date)
-  } catch (e) {
-    console.error('[CareLedgerView] createEntry (+ Day) failed', e)
-    setWriteError('Failed to add day. Check your connection and try again.')
-  }
+  await createDay(date)
 }
 
 // ── Entry actions ──────────────────────────────────────────────────────────
-
-async function handleAddEntry(day) {
-  const lastEntry = day.entries[day.entries.length - 1] ?? null
-  const defaults  = buildNewEntryDefaults(lastEntry, activeBaby.value, null)
-  try {
-    await createEntry({
-      entryDate:      day.date,
-      entryTime:      defaults.entryTime,
-      amountMl:       defaults.amountMl,
-      diaper:         defaults.diaper,
-      vitaminD:       defaults.vitaminD,
-      medication:     defaults.medication,
-      tummyTime:      false,
-      tummyTimeCount: 0,
-      notes:          '',
-    })
-  } catch (e) {
-    console.error('[CareLedgerView] createEntry failed', e)
-    setWriteError('Failed to add entry. Check your connection.')
-  }
-}
-
-async function handleUpdateEntry(entryId, changes) {
-  try {
-    await updateEntry(entryId, changes)
-  } catch (e) {
-    console.error('[CareLedgerView] updateEntry failed', e)
-    setWriteError('Failed to save change. Check your connection.')
-  }
-}
 
 function handleOpenDetail(entry) {
   detailEntryId.value   = entry.id
   detailSheetOpen.value = true
 }
 
-async function handleSaveNotes(entryId, notes) {
-  try {
-    await updateEntry(entryId, { notes })
-  } catch (e) {
-    console.error('[CareLedgerView] notes save failed', e)
-    setWriteError('Failed to save notes. Check your connection.')
-  }
-}
-
 async function handleDeleteEntry(entryId) {
-  try {
-    await softDeleteEntry(entryId)
-    detailSheetOpen.value = false
-  } catch (e) {
-    console.error('[CareLedgerView] softDeleteEntry failed', e)
-    setWriteError('Failed to delete entry. Check your connection.')
-  }
+  const ok = await deleteEntry(entryId)
+  if (ok) detailSheetOpen.value = false
 }
 
 async function handleSignOut() {

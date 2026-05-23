@@ -97,7 +97,8 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppSheet  from '@/ui/AppSheet.vue'
-import AppButton from '@/ui/AppButton.vue'
+import AppButton         from '@/ui/AppButton.vue'
+import { getTummyTimeCount } from '@/utils/entryUtils.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
@@ -114,7 +115,7 @@ const sheetOpen = computed({
 const tummyTimeCount = computed(() => {
   const e = props.entry
   if (!e) return 0
-  return e.tummyTimeCount ?? (e.tummyTime ? 1 : 0)
+  return getTummyTimeCount(e)
 })
 
 const diaperClass = computed(() => {

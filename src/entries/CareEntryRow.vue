@@ -125,7 +125,7 @@
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { isIncomplete } from '@/utils/entryUtils.js'
+import { isIncomplete, getTummyTimeCount } from '@/utils/entryUtils.js'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -140,9 +140,7 @@ const DIAPER_OPTIONS = [
 ]
 
 const incomplete     = computed(() => isIncomplete(props.entry))
-const tummyTimeCount = computed(() =>
-  props.entry.tummyTimeCount ?? (props.entry.tummyTime ? 1 : 0)
-)
+const tummyTimeCount = computed(() => getTummyTimeCount(props.entry))
 const hasNotes  = computed(() => !!(props.entry.notes))
 const mlDisplay = computed(() => props.entry.amountMl ?? '')
 
