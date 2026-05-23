@@ -105,6 +105,18 @@
     </AppCard>
 
     <AppCard>
+      <h2 class="section-heading">Usual bottle</h2>
+      <p class="text-soft text-sm">
+        Usual bottle is an optional parent-entered reminder for the week.
+        It does not calculate, recommend, or replace medical feeding guidance.
+      </p>
+      <p class="text-soft text-sm">
+        Tap <strong>Edit</strong> on any week row to set or clear the value.
+        Leave blank to clear it.
+      </p>
+    </AppCard>
+
+    <AppCard>
       <h2 class="section-heading">Privacy note</h2>
       <p class="text-soft text-sm">
         Avoid entering health card numbers, addresses, or sensitive medical
