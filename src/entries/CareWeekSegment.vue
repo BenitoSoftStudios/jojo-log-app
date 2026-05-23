@@ -18,7 +18,8 @@
     <div class="care-week__bottle" :class="{ 'care-week__bottle--row': !editing }">
       <template v-if="!editing">
         <span class="care-week__bottle-label text-faint text-xs">
-          Usual bottle: {{ usualAmount !== null ? usualAmount + ' mL' : 'not set' }}
+          <template v-if="loadFailed">Usual bottle: could not load</template>
+          <template v-else>Usual bottle: {{ usualAmount !== null ? usualAmount + ' mL' : 'not set' }}</template>
         </span>
         <button class="care-week__bottle-btn text-xs" type="button" @click="startEdit">
           Edit
@@ -86,11 +87,12 @@ const props = defineProps({
 })
 const emit = defineEmits(['toggle-week', 'toggle-day', 'add-entry', 'update-entry', 'open-detail'])
 
-const { loadWeekSettings, getBottleAmount, saveBottleAmount } = useWeeklySettings()
+const { loadWeekSettings, getBottleAmount, saveBottleAmount, hadLoadError } = useWeeklySettings()
 
 onMounted(() => loadWeekSettings(props.week.weekStartDate))
 
-const usualAmount = computed(() => getBottleAmount(props.week.weekStartDate))
+const usualAmount  = computed(() => getBottleAmount(props.week.weekStartDate))
+const loadFailed   = computed(() => hadLoadError(props.week.weekStartDate))
 
 const editing   = ref(false)
 const editVal   = ref('')

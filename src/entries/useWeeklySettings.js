@@ -23,9 +23,10 @@ async function loadWeekSettings(weekStartDate) {
   _pending.add(key)
   try {
     const data   = await getWeeklySettings(familyId.value, activeBabyId.value, weekStartDate)
-    _cache[key]  = { usualBottleAmountMl: data?.usualBottleAmountMl ?? null }
+    _cache[key]  = { usualBottleAmountMl: data?.usualBottleAmountMl ?? null, loadFailed: false }
   } catch (e) {
     console.error('[useWeeklySettings] load failed', weekStartDate, e)
+    _cache[key] = { usualBottleAmountMl: null, loadFailed: true }
   } finally {
     _pending.delete(key)
   }
@@ -37,15 +38,20 @@ function getBottleAmount(weekStartDate) {
 }
 
 async function saveBottleAmount(weekStartDate, amountMl) {
-  if (!familyId.value || !activeBabyId.value) return
+  if (!familyId.value || !activeBabyId.value) throw new Error('No active baby or family')
   await setWeeklySettings(
     familyId.value, activeBabyId.value, weekStartDate,
     { usualBottleAmountMl: amountMl },
     currentMember.value
   )
-  _cache[_key(weekStartDate)] = { usualBottleAmountMl: amountMl }
+  _cache[_key(weekStartDate)] = { usualBottleAmountMl: amountMl, loadFailed: false }
+}
+
+function hadLoadError(weekStartDate) {
+  if (!familyId.value || !activeBabyId.value) return false
+  return _cache[_key(weekStartDate)]?.loadFailed === true
 }
 
 export function useWeeklySettings() {
-  return { loadWeekSettings, getBottleAmount, saveBottleAmount }
+  return { loadWeekSettings, getBottleAmount, saveBottleAmount, hadLoadError }
 }
