@@ -179,6 +179,8 @@
         <router-link class="menu-item" to="/manage-caregivers" @click="menuOpen = false">Manage Caregivers</router-link>
         <router-link class="menu-item" to="/baby-settings"     @click="menuOpen = false">Baby Settings</router-link>
         <button v-if="isOwner" class="menu-item" type="button" @click="openAddBaby">+ Add Baby</button>
+        <button v-if="isOwner" class="menu-item" type="button" :disabled="exporting" @click="handleExportCsv">{{ exporting ? 'Exporting…' : 'Export CSV' }}</button>
+        <p v-if="isOwner && exportError" class="menu-export-error text-xs">{{ exportError }}</p>
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
         <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
         <hr class="menu-divider" />
@@ -212,6 +214,9 @@ import { useLedger }        from '@/entries/useLedger.js'
 import { useLedgerActions } from '@/entries/useLedgerActions.js'
 import { buildStartNextDayEntry } from '@/utils/entryUtils.js'
 import { todayString } from '@/utils/dateUtils.js'
+import { getWeekStartForDate } from '@/utils/weekUtils.js'
+import { generateCsv, downloadCsv } from '@/utils/csvExporter.js'
+import { useWeeklySettings } from '@/entries/useWeeklySettings.js'
 
 const router = useRouter()
 
@@ -223,6 +228,7 @@ const { entries, syncStatus }                                                   
 const { displayGrouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
         entrySortOrder, toggleMonth, toggleWeek, toggleDay }                                 = useLedger()
 const { writeError, createDay, addEntry, updateEntry, saveNotes, deleteEntry }               = useLedgerActions()
+const { loadWeekSettings, getBottleAmount }                                                  = useWeeklySettings()
 
 const menuOpen         = ref(false)
 const detailSheetOpen  = ref(false)
@@ -234,6 +240,8 @@ const newNickname      = ref('')
 const newBirthdate     = ref('')
 const addBabySaving    = ref(false)
 const addBabyError     = ref('')
+const exporting        = ref(false)
+const exportError      = ref('')
 
 // ── Header clock ───────────────────────────────────────────────────────────
 
@@ -261,6 +269,28 @@ const headerTime = computed(() => {
   const s = String(_now.value.getSeconds()).padStart(2, '0')
   return `${h}:${m}:${s}`
 })
+// ── CSV export ─────────────────────────────────────────────────────────────
+
+async function handleExportCsv() {
+  exporting.value   = true
+  exportError.value = ''
+  try {
+    const allEntries = entries.value
+    const weekStarts = [...new Set(allEntries.map(e => getWeekStartForDate(e.entryDate)))]
+    await Promise.all(weekStarts.map(ws => loadWeekSettings(ws)))
+    const weeklyAmounts = Object.fromEntries(weekStarts.map(ws => [ws, getBottleAmount(ws)]))
+    const nickname = activeBaby.value?.nickname ?? 'baby'
+    const csv      = generateCsv(allEntries, nickname, weeklyAmounts)
+    downloadCsv(csv, `jojo-log-${nickname}-${todayString()}.csv`)
+    menuOpen.value = false
+  } catch (e) {
+    console.error('[CareLedgerView] export failed', e)
+    exportError.value = 'Export failed. Try again.'
+  } finally {
+    exporting.value = false
+  }
+}
+
 // ── Sort order ─────────────────────────────────────────────────────────────
 
 function toggleSortOrder() {
@@ -631,6 +661,11 @@ async function handleSignOut() {
   font-family: var(--font-family);
   text-align: left;
   width: 100%;
+  color: var(--color-error);
+}
+
+.menu-export-error {
+  padding: 0 var(--space-4) var(--space-2);
   color: var(--color-error);
 }
 

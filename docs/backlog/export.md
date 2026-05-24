@@ -1,13 +1,23 @@
 # Backlog: CSV / Data Export
 
-A future phase should let caregivers export their entry data as CSV or another portable format.
+Phase 6.5 implemented owner-only CSV export via the menu. See docs/reports/phase-6-5-csv-export.md.
 
-Design notes:
-- **Timing**: implement after ledger stability — data model and entry fields should be finalized first.
-- **Scope**: export all entries for the active baby within a selectable date range (e.g., last 7 days, last 30 days, all time).
-- **Format**: CSV with one row per entry. Columns: date, time, amountMl, diaper, vitaminD, medication, tummyTimeCount, notes. Include `usualBottleAmountMl` from `weeklySettings` for the entry's week (join by weekStartDate).
-- **Delivery**: generate client-side (no server needed); trigger a file download via a Blob URL.
-- **Entry point**: Settings or a dedicated Export screen — not in the main ledger header.
-- **No backend required**: all data is already loaded in memory from Firestore on the active session.
+## Remaining / future items
 
-Do not implement before ledger data model is stable.
+### Include deleted entries option
+
+Current behaviour: Export CSV exports only active (non-deleted) entries from `entries.value`.
+Deleted entries are available in `deletedEntries` from `useEntries`.
+
+To add an option:
+- Add a checkbox or toggle in the menu before the Export CSV button.
+- Pass `[...entries.value, ...deletedEntries.value]` when the toggle is on.
+- The `deleted` and `deletedAt` columns are already present in the CSV schema — no schema changes needed.
+
+### Date range filter
+
+Currently exports all entries for the active baby. A date range picker (from/to) would let users export a subset.
+
+### Non-owner access
+
+Currently owner-only. Could be opened to all members if desired — no service-layer changes needed, only the `v-if="isOwner"` guard in the menu.
