@@ -128,8 +128,14 @@ async function handleSave() {
     await saveBottleAmount(props.week.weekStartDate, parsed)
     editing.value = false
   } catch (e) {
-    console.error('[CareWeekSegment] saveBottleAmount failed', e)
-    editError.value = 'Failed to save. Check your connection.'
+    console.error('[CareWeekSegment] saveBottleAmount failed | code:', e.code, '| message:', e.message, e)
+    if (e.message === 'No active baby or family') {
+      editError.value = 'Could not save. Baby or family context is missing.'
+    } else if (e.code === 'permission-denied') {
+      editError.value = 'Could not save. Firestore permission denied.'
+    } else {
+      editError.value = 'Could not save. Try again.'
+    }
   } finally {
     saving.value = false
   }

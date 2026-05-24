@@ -22,11 +22,17 @@ async function loadWeekSettings(weekStartDate) {
   if (key in _cache || _pending.has(key)) return
   _pending.add(key)
   try {
-    const data   = await getWeeklySettings(familyId.value, activeBabyId.value, weekStartDate)
-    _cache[key]  = { usualBottleAmountMl: data?.usualBottleAmountMl ?? null, loadFailed: false }
+    const data = await getWeeklySettings(familyId.value, activeBabyId.value, weekStartDate)
+    // Guard: if saveBottleAmount completed while this getDoc was in-flight, the cache
+    // already has the user's saved value. Do not overwrite it with stale Firestore data.
+    if (!(key in _cache)) {
+      _cache[key] = { usualBottleAmountMl: data?.usualBottleAmountMl ?? null, loadFailed: false }
+    }
   } catch (e) {
-    console.error('[useWeeklySettings] load failed', weekStartDate, e)
-    _cache[key] = { usualBottleAmountMl: null, loadFailed: true }
+    console.error('[useWeeklySettings] load failed | code:', e.code, '| message:', e.message, weekStartDate, e)
+    if (!(key in _cache)) {
+      _cache[key] = { usualBottleAmountMl: null, loadFailed: true }
+    }
   } finally {
     _pending.delete(key)
   }
