@@ -30,15 +30,14 @@
           <input
             ref="inputRef"
             class="care-week__bottle-input"
-            type="number"
-            v-model="editVal"
-            min="0"
-            max="500"
-            step="1"
+            type="text"
             inputmode="numeric"
+            pattern="[0-9]*"
+            v-model="editVal"
             placeholder="—"
             @keydown.enter.prevent="handleSave"
             @keydown.escape.prevent="cancelEdit"
+            @blur="handleInputBlur"
           />
           <span class="text-faint text-xs">mL</span>
           <button class="care-week__bottle-btn text-xs" type="button" :disabled="saving" @click="handleSave">
@@ -94,22 +93,43 @@ onMounted(() => loadWeekSettings(props.week.weekStartDate))
 const usualAmount  = computed(() => getBottleAmount(props.week.weekStartDate))
 const loadFailed   = computed(() => hadLoadError(props.week.weekStartDate))
 
-const editing   = ref(false)
-const editVal   = ref('')
-const saving    = ref(false)
-const editError = ref('')
-const inputRef  = ref(null)
+const editing        = ref(false)
+const editVal        = ref('')
+const initialEditVal = ref('')
+const saving         = ref(false)
+const editError      = ref('')
+const inputRef       = ref(null)
 
 function startEdit() {
-  editVal.value   = usualAmount.value !== null ? String(usualAmount.value) : ''
-  editError.value = ''
-  editing.value   = true
+  const current        = usualAmount.value !== null ? String(usualAmount.value) : ''
+  editVal.value        = current
+  initialEditVal.value = current
+  editError.value      = ''
+  editing.value        = true
   nextTick(() => inputRef.value?.focus())
 }
 
 function cancelEdit() {
-  editing.value   = false
-  editError.value = ''
+  editing.value        = false
+  editError.value      = ''
+  initialEditVal.value = ''
+}
+
+// Fires when the input loses focus. Saves only if the value changed from
+// what it was when editing started and the value is valid.
+// Deferred 150 ms so the Save button's click fires first if the user tapped
+// Save — that way saving.value is already true and the blur becomes a no-op.
+function handleInputBlur() {
+  const raw = editVal.value.trim()
+  if (raw === initialEditVal.value) return
+  if (raw !== '') {
+    const n = parseInt(raw, 10)
+    if (isNaN(n) || n < 0 || n > 500) return
+  }
+  setTimeout(() => {
+    if (saving.value || !editing.value) return
+    handleSave()
+  }, 150)
 }
 
 async function handleSave() {
@@ -126,7 +146,8 @@ async function handleSave() {
   editError.value = ''
   try {
     await saveBottleAmount(props.week.weekStartDate, parsed)
-    editing.value = false
+    editing.value        = false
+    initialEditVal.value = ''
   } catch (e) {
     console.error('[CareWeekSegment] saveBottleAmount failed | code:', e.code, '| message:', e.message, e)
     if (e.message === 'No active baby or family') {
