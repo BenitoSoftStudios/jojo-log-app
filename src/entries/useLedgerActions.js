@@ -3,10 +3,13 @@ import { useEntries } from '@/entries/useEntries.js'
 import { useBabies }  from '@/babies/useBabies.js'
 import { useLedger }  from '@/entries/useLedger.js'
 import { buildNewEntryDefaults } from '@/utils/entryUtils.js'
+import { useWeeklySettings }    from '@/entries/useWeeklySettings.js'
+import { getWeekStartForDate }  from '@/utils/weekUtils.js'
 
 const { createEntry, updateEntry: _updateEntry, softDeleteEntry } = useEntries()
 const { activeBaby } = useBabies()
 const { openDay }    = useLedger()
+const { loadWeekSettings, getBottleAmount } = useWeeklySettings()
 
 const _writeError = ref('')
 let _writeErrorTimer = null
@@ -18,7 +21,11 @@ function _setWriteError(msg) {
 }
 
 async function createDay(date) {
-  const defaults = buildNewEntryDefaults(null, activeBaby.value, null)
+  const weekStart    = getWeekStartForDate(date)
+  await loadWeekSettings(weekStart)
+  const weeklyAmt    = getBottleAmount(weekStart)
+  const weekSettings = weeklyAmt !== null ? { usualBottleAmountMl: weeklyAmt } : null
+  const defaults     = buildNewEntryDefaults(null, activeBaby.value, weekSettings)
   try {
     await createEntry({ entryDate: date, ...defaults })
     openDay(date)
@@ -29,8 +36,12 @@ async function createDay(date) {
 }
 
 async function addEntry(day) {
-  const lastEntry = day.entries[day.entries.length - 1] ?? null
-  const defaults  = buildNewEntryDefaults(lastEntry, activeBaby.value, null)
+  const weekStart    = getWeekStartForDate(day.date)
+  await loadWeekSettings(weekStart)
+  const weeklyAmt    = getBottleAmount(weekStart)
+  const weekSettings = weeklyAmt !== null ? { usualBottleAmountMl: weeklyAmt } : null
+  const lastEntry    = day.entries[day.entries.length - 1] ?? null
+  const defaults     = buildNewEntryDefaults(lastEntry, activeBaby.value, weekSettings)
   try {
     await createEntry({ entryDate: day.date, ...defaults })
   } catch (e) {

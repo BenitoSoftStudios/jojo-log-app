@@ -552,6 +552,8 @@ async function handleSignOut() {
   background: var(--color-surface);
   border-color: var(--color-mint);
   color: var(--color-mint);
+  justify-content: center;
+  font-weight: var(--font-weight-semibold);
 }
 .day-picker-btn--use-date:active {
   background: var(--color-mint-soft);
