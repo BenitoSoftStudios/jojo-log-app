@@ -122,7 +122,7 @@
             </ul>
           </div>
 
-          <!-- Confirmation phrase -->
+          <!-- Confirmation phrase + import -->
           <div class="confirm-section">
             <p class="text-sm">
               To confirm this is the right file, type:
@@ -135,10 +135,36 @@
               :placeholder="expectedPhrase"
               autocomplete="off"
               spellcheck="false"
+              :disabled="importing || !!importResult"
             />
-            <div v-if="importReady" class="alert alert--ready text-sm">
-              Preview confirmed. Actual import writes are not available in this phase (Phase 7C).
+
+            <button
+              v-if="importReady && !importResult"
+              class="import-btn"
+              type="button"
+              :disabled="importing"
+              @click="handleImport"
+            >
+              {{ importing ? 'Importing…' : `Import ${preview.rowCount} rows into ${activeBaby.nickname}` }}
+            </button>
+
+            <div v-if="importing && importProgress" class="alert alert--info text-sm">
+              Writing batch {{ importProgress.batchIndex }} of {{ importProgress.batchCount }}
+              ({{ importProgress.written }} rows written)…
             </div>
+
+            <div v-if="importResult" class="alert alert--ready text-sm">
+              <p><strong>Import complete.</strong></p>
+              <ul class="import-result-list">
+                <li>Rows imported: <strong>{{ importResult.written }}</strong></li>
+                <li>Expected: {{ preview.rowCount }}</li>
+                <li>Total mL: {{ preview.totalMl.toLocaleString() }}</li>
+                <li>Date range: {{ preview.dateRange?.min }} → {{ preview.dateRange?.max }}</li>
+                <li>Source: legacy</li>
+              </ul>
+            </div>
+
+            <p v-if="importError" class="alert alert--error text-sm">{{ importError }}</p>
           </div>
         </section>
 
@@ -222,7 +248,8 @@ import { useFamily }  from '@/families/useFamily.js'
 import { useBabies }  from '@/babies/useBabies.js'
 import { useEntries } from '@/entries/useEntries.js'
 import { parseRows, transformRows, validateRows } from '@/utils/legacyCsvParser.js'
-import { purgeTestEntries } from '@/entries/useAdminEntryPurge.js'
+import { purgeTestEntries }   from '@/entries/useAdminEntryPurge.js'
+import { writeLegacyEntries } from '@/admin/useLegacyImportWriter.js'
 
 const router = useRouter()
 
@@ -236,7 +263,14 @@ onMounted(() => {
 
 const parseError    = ref('')
 const preview       = ref(null)
+const parsedEntries = ref([])
 const confirmPhrase = ref('')
+
+// Import state
+const importing      = ref(false)
+const importProgress = ref(null)
+const importError    = ref('')
+const importResult   = ref(null)
 
 const expectedPhrase = computed(() =>
   activeBaby.value ? `IMPORT TO ${activeBaby.value.nickname.toUpperCase()}` : 'IMPORT TO JOJO'
@@ -280,21 +314,47 @@ async function handlePurge() {
 }
 
 async function handleFile(event) {
-  parseError.value    = ''
-  preview.value       = null
-  confirmPhrase.value = ''
+  parseError.value     = ''
+  preview.value        = null
+  parsedEntries.value  = []
+  confirmPhrase.value  = ''
+  importResult.value   = null
+  importError.value    = ''
+  importProgress.value = null
 
   const file = event.target.files?.[0]
   if (!file) return
 
   try {
-    const text       = await file.text()
-    const rawRows    = parseRows(text)
+    const text        = await file.text()
+    const rawRows     = parseRows(text)
     const transformed = transformRows(rawRows)
-    preview.value    = validateRows(transformed)
+    parsedEntries.value = transformed
+    preview.value       = validateRows(transformed)
   } catch (e) {
     console.error('[LegacyImportView] parse failed', e)
     parseError.value = `Parse failed: ${e.message}`
+  }
+}
+
+async function handleImport() {
+  if (!importReady.value) return
+  importing.value      = true
+  importProgress.value = null
+  importError.value    = ''
+  importResult.value   = null
+  try {
+    const result = await writeLegacyEntries(parsedEntries.value, (progress) => {
+      importProgress.value = progress
+    })
+    importResult.value = result
+  } catch (e) {
+    console.error('[LegacyImportView] import failed', e)
+    importError.value = importProgress.value
+      ? `Import failed after ${importProgress.value.written} rows (batch ${importProgress.value.batchIndex}/${importProgress.value.batchCount}). ${e.message}`
+      : `Import failed: ${e.message}`
+  } finally {
+    importing.value = false
   }
 }
 </script>
@@ -472,6 +532,33 @@ async function handleFile(event) {
 .confirm-input:focus {
   outline: none;
   border-color: var(--color-mint);
+}
+
+.import-btn {
+  margin-top: var(--space-2);
+  background: none;
+  border: 1px solid var(--color-mint);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-mint);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-4);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.import-btn:disabled { opacity: 0.4; cursor: default; }
+.import-btn:not(:disabled):active { filter: brightness(0.9); }
+
+.alert--info {
+  background: var(--color-row-week);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-soft);
+}
+
+.import-result-list {
+  margin: var(--space-2) 0 0 var(--space-4);
 }
 
 /* ── Purge panel ───────────────────────────────────────────────────────────── */
