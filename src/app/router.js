@@ -78,6 +78,18 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/invite',
+    name: 'invite',
+    component: () => import('@/families/InviteFamilyMemberView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/join-family',
+    name: 'join-family',
+    component: () => import('@/families/JoinFamilyView.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/admin/legacy-import',
     name: 'admin-legacy-import',
     component: () => import('@/admin/LegacyImportView.vue'),
