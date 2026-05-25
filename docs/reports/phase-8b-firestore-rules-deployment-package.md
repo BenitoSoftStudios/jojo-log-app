@@ -1,15 +1,21 @@
 # Phase 8B — Firestore Rules Deployment Package (Phase 8B-3)
 
 **Date:** 2026-05-25
-**Revision:** Phase 8B-3
+**Revision:** Phase 8B-4
 **Status:** Package only — no rules deployed.
 
 ---
 
-## ⛔ TOP-LEVEL VERDICT: NOT SAFE TO DEPLOY
+## ✅ TOP-LEVEL VERDICT: READY FOR MANUAL RULES DEPLOYMENT AFTER LIVE INVITE RETEST
 
-**1 blocking requirement** must be implemented in app code before the rules in §6
-can be deployed. See §2 for the exact required change.
+The Phase 8B-3 blocking app change is now implemented (commit on main).
+`addMember()` writes `joinedViaInviteCode` to the member doc.
+`JoinFamilyView.handleJoin()` passes `qCode` as `joinedViaInviteCode`.
+
+**Do not deploy the §6 rules until the invite flow has been tested once on the
+live app after this commit is deployed to Vercel.** Confirm that a new invited
+member's doc in Firestore has the `joinedViaInviteCode` field before publishing
+the hardened rules.
 
 Blockers 2 and 3 (entry create source gate, protected entry update fields) are
 correctly resolved in the §6 rules and do not require app changes.
@@ -24,6 +30,7 @@ correctly resolved in the §6 rules and do not require app changes.
 | 8B-1 | Added `joinedViaInviteId` → invite exists + `status == 'active'`. `sourceUnchanged` on update. `createdByUserId/createdByLabel/createdAt` app-layer only. |
 | 8B-2 | Added `protectedFieldsUnchanged` on member update. Admin bypass for batch.set re-imports. Declared "safe to deploy" — incorrect, see below. |
 | **8B-3** | **Corrected verdict. Code verification gap documented. Exact app change specified. Rules snippet shows post-fix version only.** |
+| **8B-4** | **App change implemented. `addMember()` writes `joinedViaInviteCode`. `JoinFamilyView` passes `qCode`. Verdict updated to READY after live retest.** |
 
 ---
 
@@ -42,7 +49,7 @@ All membership/ownership checks use `get()` on `families/{fId}/members/{uid}`.
 
 ---
 
-## 2. Blocking requirement — invite code verification needs app change
+## 2. Blocking requirement — invite code verification (IMPLEMENTED in Phase 8B-4)
 
 ### Current gap
 

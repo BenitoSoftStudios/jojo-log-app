@@ -31,7 +31,7 @@ export async function updateFamily(familyId, changes) {
   })
 }
 
-export async function addMember(familyId, { userId, email, role, displayLabel, initials, joinedViaInviteId = null }) {
+export async function addMember(familyId, { userId, email, role, displayLabel, initials, joinedViaInviteId = null, joinedViaInviteCode = null }) {
   await setDoc(doc(db, 'families', familyId, 'members', userId), {
     userId,
     email,
@@ -41,6 +41,7 @@ export async function addMember(familyId, { userId, email, role, displayLabel, i
     joinedAt: serverTimestamp(),
     invitedByUserId: null,
     joinedViaInviteId,
+    joinedViaInviteCode,
     active: true
   })
 }

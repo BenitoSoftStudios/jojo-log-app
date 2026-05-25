@@ -318,6 +318,7 @@ async function handleJoin() {
       displayLabel: displayLabel.value.trim(),
       initials: initials.value.trim(),
       joinedViaInviteId: qInviteId,
+      joinedViaInviteCode: qCode,
     })
     await acceptInvite(qFamilyId, qInviteId, {
       acceptedByUserId: uid,
