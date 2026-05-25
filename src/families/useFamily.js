@@ -13,9 +13,13 @@ export const family        = readonly(_family)
 export const currentMember = readonly(_currentMember)
 
 export function useFamily() {
-  const familyId        = computed(() => _family.value?.id ?? null)
-  const isOwner         = computed(() => _currentMember.value?.role === 'owner')
-  const hasDisplayLabel = computed(() => !!_currentMember.value?.displayLabel)
+  const familyId              = computed(() => _family.value?.id ?? null)
+  const isOwner               = computed(() => _currentMember.value?.role === 'owner')
+  const isLegacyImportAdmin   = computed(() =>
+    _currentMember.value?.role === 'owner' &&
+    _currentMember.value?.legacyImportAdmin === true
+  )
+  const hasDisplayLabel       = computed(() => !!_currentMember.value?.displayLabel)
 
   async function loadFamily(uid) {
     _loading.value = true
@@ -59,6 +63,7 @@ export function useFamily() {
     currentMember,
     familyId,
     isOwner,
+    isLegacyImportAdmin,
     hasDisplayLabel,
     loading: readonly(_loading),
     error:   readonly(_error),

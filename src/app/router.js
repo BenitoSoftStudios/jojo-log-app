@@ -78,6 +78,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/admin/legacy-import',
+    name: 'admin-legacy-import',
+    component: () => import('@/admin/LegacyImportView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/:pathMatch(.*)*',
     redirect: '/'
   }
