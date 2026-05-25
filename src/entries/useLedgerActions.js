@@ -20,14 +20,14 @@ function _setWriteError(msg) {
   _writeErrorTimer = setTimeout(() => { _writeError.value = '' }, 5000)
 }
 
-async function createDay(date) {
+async function createDay(date, time) {
   const weekStart    = getWeekStartForDate(date)
   await loadWeekSettings(weekStart)
   const weeklyAmt    = getBottleAmount(weekStart)
   const weekSettings = weeklyAmt !== null ? { usualBottleAmountMl: weeklyAmt } : null
   const defaults     = buildNewEntryDefaults(null, activeBaby.value, weekSettings)
   try {
-    await createEntry({ entryDate: date, ...defaults })
+    await createEntry({ entryDate: date, ...defaults, entryTime: time ?? defaults.entryTime })
     openDay(date)
   } catch (e) {
     console.error('[useLedgerActions] createEntry (+ Day) failed', e)

@@ -1,9 +1,9 @@
-<!-- Admin-only: Legacy CSV import preview tool. Preview only — no Firestore writes in this phase. -->
+<!-- Admin-only: Import CSV tool. Accepts Jojo app export CSV format only. -->
 <template>
   <AppLayout>
     <template #header>
       <router-link class="back-btn" to="/" aria-label="Back">←</router-link>
-      <span class="header-title">Legacy Import</span>
+      <span class="header-title">Import CSV</span>
     </template>
 
     <!-- Admin gate -->
@@ -14,22 +14,11 @@
 
     <template v-else>
 
-      <!-- Notice -->
-      <div class="notice-banner text-sm">
-        <strong>Import: preview only.</strong> No legacy entry data will be written in this phase.
-        Purge test entries is available below.
-        The CSV is parsed in your browser only — it is never uploaded or saved to Firestore.
-      </div>
-
       <!-- Destination -->
       <section class="section">
         <h2 class="section-title">Destination</h2>
         <div v-if="!activeBaby" class="alert alert--error text-sm">
           No active baby selected. Go back to the ledger and select a baby first.
-        </div>
-        <div v-else-if="activeBaby.nickname !== 'Jojo'" class="alert alert--error text-sm">
-          Active baby is <strong>{{ activeBaby.nickname }}</strong>, not Jojo.
-          Switch to the Jojo baby profile before using this tool.
         </div>
         <div v-else class="destination-row">
           <span class="destination-label text-faint text-sm">Import destination:</span>
@@ -37,13 +26,13 @@
         </div>
       </section>
 
-      <!-- Only show the rest when destination is valid -->
-      <template v-if="activeBaby && activeBaby.nickname === 'Jojo'">
+      <!-- Only show rest when destination is valid -->
+      <template v-if="activeBaby">
 
         <!-- Upload -->
         <section class="section">
           <h2 class="section-title">Upload CSV</h2>
-          <p class="text-faint text-sm">Select the legacy care log CSV from your device.</p>
+          <p class="text-faint text-sm">Select a Jojo app export CSV from your device.</p>
           <input
             class="file-input"
             type="file"
@@ -63,70 +52,46 @@
               <strong>{{ activeBaby.nickname }}</strong>
             </li>
             <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Rows parsed</span>
+              <span class="preview-list__label text-faint">Row count</span>
               <span>{{ preview.rowCount }}</span>
             </li>
             <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Total mL</span>
+              <span class="preview-list__label text-faint">Valid rows</span>
+              <span>{{ preview.validRows }}</span>
+            </li>
+            <li v-if="preview.skippedRows > 0" class="preview-list__row">
+              <span class="preview-list__label text-faint">Skipped (blank ID)</span>
+              <span class="text-warn">{{ preview.skippedRows }}</span>
+            </li>
+            <li class="preview-list__row">
+              <span class="preview-list__label text-faint">Deleted rows</span>
+              <span>{{ preview.deletedCount }}</span>
+            </li>
+            <li class="preview-list__row">
+              <span class="preview-list__label text-faint">Total mL (non-deleted)</span>
               <span>{{ preview.totalMl.toLocaleString() }}</span>
             </li>
             <li class="preview-list__row">
               <span class="preview-list__label text-faint">Date range</span>
-              <span>{{ preview.dateRange?.min }} → {{ preview.dateRange?.max }}</span>
+              <span>{{ preview.dateRange?.min ?? '—' }} → {{ preview.dateRange?.max ?? '—' }}</span>
             </li>
             <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Blank amount rows</span>
-              <span>{{ preview.blankAmountRows }}</span>
-            </li>
-            <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Blank diaper rows</span>
-              <span>{{ preview.blankDiaperRows }}</span>
-            </li>
-            <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Diaper none rows</span>
-              <span>{{ preview.diaperNoneRows }}</span>
-            </li>
-            <li class="preview-list__row">
-              <span class="preview-list__label text-faint">0 mL rows</span>
-              <span>{{ preview.zeroMlRows }}</span>
-            </li>
-            <li class="preview-list__row">
-              <span class="preview-list__label text-faint">VitaminD yes rows</span>
-              <span>{{ preview.vitaminDYesRows }}</span>
-            </li>
-            <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Notes rows</span>
-              <span>{{ preview.notesRows }}</span>
-            </li>
-            <li class="preview-list__row">
-              <span class="preview-list__label text-faint">Duplicate Date+Time pairs</span>
-              <span :class="preview.duplicates.length > 0 ? 'text-warn' : ''">
-                {{ preview.duplicates.length }}
-              </span>
+              <span class="preview-list__label text-faint">Sources</span>
+              <span>{{ preview.sources.length ? preview.sources.join(', ') : '—' }}</span>
             </li>
           </ul>
 
-          <div v-if="preview.duplicates.length > 0" class="alert alert--warn text-sm">
-            <p><strong>Duplicate Date+Time pairs</strong> (each will get a unique ID):</p>
-            <ul class="dup-list">
-              <li v-for="d in preview.duplicates" :key="d.entryDate + d.entryTime">
-                {{ d.entryDate }} {{ d.entryTime }} — {{ d.ids.length }} rows
-              </li>
-            </ul>
-          </div>
-
-          <div v-if="preview.errors.length > 0" class="alert alert--error text-sm">
+          <div v-if="parseErrors.length > 0" class="alert alert--error text-sm">
             <p><strong>Errors — import blocked:</strong></p>
             <ul>
-              <li v-for="err in preview.errors" :key="err">{{ err }}</li>
+              <li v-for="err in parseErrors" :key="err">{{ err }}</li>
             </ul>
           </div>
 
           <!-- Confirmation phrase + import -->
           <div class="confirm-section">
             <p class="text-sm">
-              To confirm this is the right file, type:
-              <strong>{{ expectedPhrase }}</strong>
+              To confirm, type: <strong>{{ expectedPhrase }}</strong>
             </p>
             <input
               class="confirm-input"
@@ -157,82 +122,14 @@
               <p><strong>Import complete.</strong></p>
               <ul class="import-result-list">
                 <li>Rows imported: <strong>{{ importResult.written }}</strong></li>
-                <li>Expected: {{ preview.rowCount }}</li>
-                <li>Total mL: {{ preview.totalMl.toLocaleString() }}</li>
                 <li>Date range: {{ preview.dateRange?.min }} → {{ preview.dateRange?.max }}</li>
-                <li>Source: legacy</li>
+                <li>Total mL: {{ preview.totalMl.toLocaleString() }}</li>
+                <li>Sources: {{ preview.sources.join(', ') || '—' }}</li>
               </ul>
             </div>
 
             <p v-if="importError" class="alert alert--error text-sm">{{ importError }}</p>
           </div>
-        </section>
-
-        <!-- Purge panel -->
-        <section class="section section--purge">
-          <h2 class="section-title">Purge Test Entries</h2>
-
-          <div class="alert alert--warn text-sm">
-            This permanently removes test entries (source ≠ "legacy") for
-            <strong>{{ activeBaby.nickname }}</strong> only.
-            Legacy feeds, babies, family, members, and weekly settings are not touched.
-            This action cannot be undone.
-          </div>
-
-          <div v-if="purgeSuccess" class="alert alert--ready text-sm">
-            Done. Removed {{ purgeSuccess.deleted }} test
-            {{ purgeSuccess.deleted === 1 ? 'entry' : 'entries' }}.
-            <span v-if="purgeSuccess.skipped > 0">
-              Skipped {{ purgeSuccess.skipped }} legacy
-              {{ purgeSuccess.skipped === 1 ? 'entry' : 'entries' }}.
-            </span>
-          </div>
-
-          <div v-else-if="purgeableCount === 0" class="text-faint text-sm" style="margin-top:var(--space-3)">
-            No purgeable entries found for this baby.
-          </div>
-
-          <template v-else>
-            <p class="text-sm" style="margin-top:var(--space-3)">
-              Purgeable entries for <strong>{{ activeBaby.nickname }}</strong>:
-              <strong>{{ purgeableCount }}</strong>
-            </p>
-
-            <ul class="purge-sample text-sm">
-              <li v-for="e in purgeSample" :key="e.id" class="purge-sample__row">
-                <span class="text-faint">{{ e.entryDate }}</span>
-                <span class="text-faint">{{ e.entryTime }}</span>
-                <span>{{ e.amountMl ?? '—' }} mL</span>
-                <span class="text-faint text-xs">{{ e.source }}</span>
-              </li>
-            </ul>
-            <p v-if="purgeableCount > 5" class="text-faint text-xs">
-              … and {{ purgeableCount - 5 }} more.
-            </p>
-
-            <div class="confirm-section">
-              <p class="text-sm">
-                Type <strong>PURGE TEST ENTRIES</strong> to enable the button.
-              </p>
-              <input
-                class="confirm-input"
-                type="text"
-                v-model="purgePhrase"
-                placeholder="PURGE TEST ENTRIES"
-                autocomplete="off"
-                spellcheck="false"
-              />
-              <button
-                class="purge-btn"
-                type="button"
-                :disabled="purgePhrase !== 'PURGE TEST ENTRIES' || purging"
-                @click="handlePurge"
-              >
-                {{ purging ? 'Purging…' : 'Purge test entries' }}
-              </button>
-              <p v-if="purgeError" class="alert alert--error text-sm">{{ purgeError }}</p>
-            </div>
-          </template>
         </section>
 
       </template>
@@ -244,77 +141,44 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/ui/AppLayout.vue'
-import { useFamily }  from '@/families/useFamily.js'
-import { useBabies }  from '@/babies/useBabies.js'
-import { useEntries } from '@/entries/useEntries.js'
-import { parseRows, transformRows, validateRows } from '@/utils/legacyCsvParser.js'
-import { purgeTestEntries }   from '@/entries/useAdminEntryPurge.js'
-import { writeLegacyEntries } from '@/admin/useLegacyImportWriter.js'
+import { useFamily } from '@/families/useFamily.js'
+import { useBabies } from '@/babies/useBabies.js'
+import { parseAppCsv }       from '@/utils/appCsvImporter.js'
+import { writeAppCsvEntries } from '@/admin/useLegacyImportWriter.js'
 
 const router = useRouter()
 
-const { isLegacyImportAdmin }                    = useFamily()
-const { activeBaby }                             = useBabies()
-const { entries: liveEntries, deletedEntries }   = useEntries()
+const { isLegacyImportAdmin } = useFamily()
+const { activeBaby }          = useBabies()
 
 onMounted(() => {
   if (!isLegacyImportAdmin.value) router.replace('/')
 })
 
-const parseError    = ref('')
-const preview       = ref(null)
+const parseError  = ref('')
+const parseErrors = ref([])
+const preview     = ref(null)
 const parsedEntries = ref([])
 const confirmPhrase = ref('')
 
-// Import state
 const importing      = ref(false)
 const importProgress = ref(null)
 const importError    = ref('')
 const importResult   = ref(null)
 
 const expectedPhrase = computed(() =>
-  activeBaby.value ? `IMPORT TO ${activeBaby.value.nickname.toUpperCase()}` : 'IMPORT TO JOJO'
+  activeBaby.value ? `IMPORT CSV TO ${activeBaby.value.nickname.toUpperCase()}` : 'IMPORT CSV TO BABY'
 )
 
 const importReady = computed(() =>
   preview.value !== null &&
-  preview.value.errors.length === 0 &&
+  parseErrors.value.length === 0 &&
   confirmPhrase.value === expectedPhrase.value
 )
 
-// Purge panel
-const purgeableEntries = computed(() => {
-  const all = [...liveEntries.value, ...deletedEntries.value]
-  return all.filter(e => e.source !== 'legacy')
-})
-
-const purgeableCount = computed(() => purgeableEntries.value.length)
-const purgeSample    = computed(() => purgeableEntries.value.slice(0, 5))
-
-const purgePhrase  = ref('')
-const purging      = ref(false)
-const purgeError   = ref('')
-const purgeSuccess = ref(null)
-
-async function handlePurge() {
-  if (purgePhrase.value !== 'PURGE TEST ENTRIES') return
-  purging.value    = true
-  purgeError.value = ''
-  purgeSuccess.value = null
-  try {
-    const result = await purgeTestEntries(purgeableEntries.value)
-    purgeSuccess.value = result
-    purgePhrase.value  = ''
-  } catch (e) {
-    console.error('[LegacyImportView] purge failed', e)
-    purgeError.value = `Purge failed: ${e.message}`
-  } finally {
-    purging.value = false
-  }
-}
-
 async function handleFile(event) {
   parseError.value     = ''
+  parseErrors.value    = []
   preview.value        = null
   parsedEntries.value  = []
   confirmPhrase.value  = ''
@@ -326,11 +190,14 @@ async function handleFile(event) {
   if (!file) return
 
   try {
-    const text        = await file.text()
-    const rawRows     = parseRows(text)
-    const transformed = transformRows(rawRows)
-    parsedEntries.value = transformed
-    preview.value       = validateRows(transformed)
+    const text   = await file.text()
+    const result = parseAppCsv(text)
+    parsedEntries.value = result.entries
+    parseErrors.value   = result.errors
+    preview.value       = result.preview
+    if (!result.preview) {
+      parseError.value = result.errors[0] ?? 'Could not parse file.'
+    }
   } catch (e) {
     console.error('[LegacyImportView] parse failed', e)
     parseError.value = `Parse failed: ${e.message}`
@@ -344,7 +211,7 @@ async function handleImport() {
   importError.value    = ''
   importResult.value   = null
   try {
-    const result = await writeLegacyEntries(parsedEntries.value, (progress) => {
+    const result = await writeAppCsvEntries(parsedEntries.value, (progress) => {
       importProgress.value = progress
     })
     importResult.value = result
@@ -386,17 +253,6 @@ async function handleImport() {
   color: var(--color-mint);
 }
 
-/* ── Notice ────────────────────────────────────────────────────────────────── */
-
-.notice-banner {
-  background: var(--color-row-week);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-4);
-  margin-bottom: var(--space-4);
-  line-height: 1.5;
-}
-
 /* ── Sections ──────────────────────────────────────────────────────────────── */
 
 .section {
@@ -410,24 +266,6 @@ async function handleImport() {
   text-transform: uppercase;
   letter-spacing: 0.04em;
   margin-bottom: var(--space-3);
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
-
-.section-title__badge {
-  font-weight: normal;
-  text-transform: none;
-  letter-spacing: 0;
-  color: var(--color-text-faint);
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  padding: 1px 6px;
-}
-
-.section--purge {
-  border-top: 1px solid var(--color-border);
-  padding-top: var(--space-4);
 }
 
 /* ── Destination ───────────────────────────────────────────────────────────── */
@@ -457,16 +295,16 @@ async function handleImport() {
   color: var(--color-error);
 }
 
-.alert--warn {
-  background: color-mix(in srgb, var(--color-warn, #f59e0b) 10%, transparent);
-  border: 1px solid var(--color-warn, #f59e0b);
-  color: var(--color-text);
-}
-
 .alert--ready {
   background: color-mix(in srgb, var(--color-mint) 10%, transparent);
   border: 1px solid var(--color-mint);
   color: var(--color-text);
+}
+
+.alert--info {
+  background: var(--color-row-week);
+  border: 1px solid var(--color-border);
+  color: var(--color-text-soft);
 }
 
 /* ── File input ────────────────────────────────────────────────────────────── */
@@ -502,11 +340,6 @@ async function handleImport() {
 .preview-list__label { flex: 1; }
 
 .text-warn { color: var(--color-warn, #f59e0b); }
-
-.dup-list {
-  margin-top: var(--space-2);
-  padding-left: var(--space-4);
-}
 
 /* ── Confirmation ──────────────────────────────────────────────────────────── */
 
@@ -551,49 +384,7 @@ async function handleImport() {
 .import-btn:disabled { opacity: 0.4; cursor: default; }
 .import-btn:not(:disabled):active { filter: brightness(0.9); }
 
-.alert--info {
-  background: var(--color-row-week);
-  border: 1px solid var(--color-border);
-  color: var(--color-text-soft);
-}
-
 .import-result-list {
   margin: var(--space-2) 0 0 var(--space-4);
 }
-
-/* ── Purge panel ───────────────────────────────────────────────────────────── */
-
-.purge-sample {
-  list-style: none;
-  padding: 0;
-  margin: var(--space-2) 0;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-
-.purge-sample__row {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--color-border-soft);
-}
-
-.purge-sample__row:last-child { border-bottom: none; }
-
-.purge-btn {
-  margin-top: var(--space-2);
-  background: none;
-  border: 1px solid var(--color-error);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-family);
-  font-size: var(--font-size-sm);
-  color: var(--color-error);
-  cursor: pointer;
-  padding: var(--space-2) var(--space-4);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-.purge-btn:disabled { opacity: 0.4; cursor: default; }
-.purge-btn:not(:disabled):active { filter: brightness(0.9); }
 </style>

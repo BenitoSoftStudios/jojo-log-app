@@ -75,3 +75,64 @@ export async function writeLegacyEntries(entries, onProgress) {
 
   return { written, batchCount: chunks.length }
 }
+
+/**
+ * Write app-export CSV entries into Firestore under the active baby.
+ * Uses entryId from the CSV as the doc ID — idempotent.
+ * Timestamps (createdAt, updatedAt, deletedAt) are preserved as strings.
+ *
+ * @param {Array}    entries    - from appCsvImporter.parseAppCsv().entries
+ * @param {function} onProgress - optional; called with { batchIndex, batchCount, written }
+ * @returns {{ written: number, batchCount: number }}
+ */
+export async function writeAppCsvEntries(entries, onProgress) {
+  if (!familyId.value || !activeBabyId.value) {
+    throw new Error('No active family or baby')
+  }
+  if (entries.length === 0) return { written: 0, batchCount: 0 }
+
+  const entriesCol = collection(
+    db, 'families', familyId.value, 'babies', activeBabyId.value, 'entries'
+  )
+
+  const chunks = []
+  for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+    chunks.push(entries.slice(i, i + BATCH_SIZE))
+  }
+
+  let written = 0
+
+  for (let i = 0; i < chunks.length; i++) {
+    const chunk = chunks[i]
+    const batch = writeBatch(db)
+
+    for (const entry of chunk) {
+      batch.set(doc(entriesCol, entry.id), {
+        entryDate:      entry.entryDate,
+        entryTime:      entry.entryTime      ?? null,
+        amountMl:       entry.amountMl,
+        diaper:         entry.diaper,
+        vitaminD:       entry.vitaminD       ?? false,
+        medication:     entry.medication     ?? false,
+        tummyTimeCount: entry.tummyTimeCount ?? 0,
+        notes:          entry.notes          ?? '',
+        source:         entry.source         ?? null,
+        createdByLabel: entry.createdByLabel ?? null,
+        createdAt:      entry.createdAt      ?? null,
+        updatedByLabel: entry.updatedByLabel ?? null,
+        updatedAt:      entry.updatedAt      ?? null,
+        deleted:        entry.deleted        ?? false,
+        deletedAt:      entry.deletedAt      ?? null,
+      })
+    }
+
+    await batch.commit()
+    written += chunk.length
+
+    if (onProgress) {
+      onProgress({ batchIndex: i + 1, batchCount: chunks.length, written })
+    }
+  }
+
+  return { written, batchCount: chunks.length }
+}

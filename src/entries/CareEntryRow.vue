@@ -103,12 +103,14 @@
         @click="onTummyTap"
       >★<span v-if="tummyTimeCount > 0" class="tt-badge">+{{ tummyTimeCount }}</span></button>
 
-      <!-- Notes compact indicator -->
-      <span
+      <!-- Notes compact indicator — tapping opens the detail sheet -->
+      <button
         v-if="hasNotes"
         class="sym-notes text-faint text-xs"
-        aria-label="Has notes"
-      >✎ notes</span>
+        type="button"
+        aria-label="Open notes"
+        @click="emit('open-detail', entry)"
+      >✎ notes</button>
 
       <!-- Save feedback — appears briefly after each write -->
       <span
@@ -440,6 +442,14 @@ function onMlBlur(e) {
 .sym-notes {
   padding: var(--space-1);
   line-height: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 /* Save feedback */

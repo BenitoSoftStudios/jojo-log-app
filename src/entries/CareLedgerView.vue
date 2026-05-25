@@ -104,14 +104,24 @@
     <!-- Day picker sheet — shown when user taps + Day -->
     <AppSheet v-model="dayPickerOpen" title="Add Day">
       <p class="day-picker-hint text-soft text-sm">
-        Creates a blank entry for the chosen date.
+        Choose a date and time for the new entry.
       </p>
       <div class="day-picker-options">
-        <button class="day-picker-btn" type="button" @click="doCreateDay(todayDate)">
+        <button
+          class="day-picker-btn"
+          :class="{ 'day-picker-btn--selected': addDayDate === todayDate }"
+          type="button"
+          @click="selectAddDay(todayDate, true)"
+        >
           <span class="day-picker-btn__label">Today</span>
           <span class="day-picker-btn__date text-soft text-sm">{{ todayDate }}</span>
         </button>
-        <button class="day-picker-btn" type="button" @click="doCreateDay(nextDayDate)">
+        <button
+          class="day-picker-btn"
+          :class="{ 'day-picker-btn--selected': addDayDate === nextDayDate }"
+          type="button"
+          @click="selectAddDay(nextDayDate, false)"
+        >
           <span class="day-picker-btn__label">Next day</span>
           <span class="day-picker-btn__date text-soft text-sm">{{ nextDayDate }}</span>
         </button>
@@ -125,17 +135,36 @@
             type="date"
             :value="pickedCustomDate"
             :max="todayDate"
-            @change="e => pickedCustomDate = e.target.value"
+            @change="e => { pickedCustomDate = e.target.value; selectAddDay(e.target.value, false) }"
           />
           <button
             class="day-picker-btn day-picker-btn--use-date"
             type="button"
             :disabled="!pickedCustomDate"
-            @click="pickedCustomDate && doCreateDay(pickedCustomDate)"
+            @click="pickedCustomDate && selectAddDay(pickedCustomDate, false)"
           >
             <span class="day-picker-btn__label">Use this date</span>
           </button>
         </div>
+      </div>
+
+      <div v-if="addDayDate" class="day-picker-time-row">
+        <label class="day-picker-label text-soft text-sm" for="day-picker-time">
+          Time
+        </label>
+        <input
+          id="day-picker-time"
+          class="day-picker-input"
+          type="time"
+          v-model="addDayTime"
+        />
+        <button
+          class="day-picker-btn day-picker-btn--use-date"
+          type="button"
+          @click="doCreateDay"
+        >
+          <span class="day-picker-btn__label">Create entry</span>
+        </button>
       </div>
     </AppSheet>
 
@@ -181,7 +210,7 @@
         <router-link class="menu-item" to="/baby-settings"     @click="menuOpen = false">Baby Settings</router-link>
         <button v-if="isOwner" class="menu-item" type="button" @click="openAddBaby">+ Add Baby</button>
         <button v-if="isOwner" class="menu-item" type="button" :disabled="exporting" @click="handleExportCsv">{{ exporting ? 'Exporting…' : 'Export CSV' }}</button>
-        <router-link v-if="isLegacyImportAdmin" class="menu-item" to="/admin/legacy-import" @click="menuOpen = false">Legacy Import</router-link>
+        <router-link v-if="isLegacyImportAdmin" class="menu-item" to="/admin/legacy-import" @click="menuOpen = false">Import CSV</router-link>
         <p v-if="isOwner && exportError" class="menu-export-error text-xs">{{ exportError }}</p>
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
         <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
@@ -238,6 +267,8 @@ const detailSheetOpen  = ref(false)
 const detailEntryId    = ref(null)
 const dayPickerOpen    = ref(false)
 const pickedCustomDate = ref('')
+const addDayDate       = ref('')
+const addDayTime       = ref('')
 const addBabyOpen      = ref(false)
 const newNickname      = ref('')
 const newBirthdate     = ref('')
@@ -355,16 +386,28 @@ const nextDayDate = computed(() => {
 // ── + Day picker ───────────────────────────────────────────────────────────
 
 function handleOpenDayPicker() {
-  // Cap to today in case nextDayDate is tomorrow (most recent entry is today).
   const next = nextDayDate.value
   pickedCustomDate.value = next <= todayDate ? next : todayDate
+  addDayDate.value       = ''
+  addDayTime.value       = ''
   dayPickerOpen.value    = true
 }
 
-async function doCreateDay(date) {
+function selectAddDay(date, isToday) {
   if (!date) return
+  addDayDate.value = date
+  if (isToday) {
+    const now = new Date()
+    addDayTime.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+  } else {
+    addDayTime.value = '00:00'
+  }
+}
+
+async function doCreateDay() {
+  if (!addDayDate.value) return
   dayPickerOpen.value = false
-  await createDay(date)
+  await createDay(addDayDate.value, addDayTime.value)
 }
 
 // ── Entry actions ──────────────────────────────────────────────────────────
@@ -600,12 +643,26 @@ async function handleSignOut() {
   flex-shrink: 0;
 }
 
+.day-picker-btn--selected {
+  border-color: var(--color-mint);
+  background: var(--color-mint-soft);
+}
+
 .day-picker-custom {
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
   padding-top: var(--space-2);
   border-top: 1px solid var(--color-border-soft);
+}
+
+.day-picker-time-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: 1px solid var(--color-border-soft);
+  margin-top: var(--space-1);
 }
 
 .day-picker-label {
