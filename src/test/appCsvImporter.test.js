@@ -246,3 +246,55 @@ describe('parseAppCsv — preview stats', () => {
     expect(preview.rowCount).toBe(1)
   })
 })
+
+// ── baby name tracking ──────────────────────────────────────────────────────
+
+describe('parseAppCsv — baby name tracking', () => {
+  it('reports single consistent babyNickname', () => {
+    const { preview } = parseAppCsv(csv(
+      makeRow({ entryId: 'e1', babyNickname: 'Jojo' }),
+      makeRow({ entryId: 'e2', babyNickname: 'Jojo' }),
+    ))
+    expect(preview.babyNames).toEqual(['Jojo'])
+    expect(preview.hasBlankBabyName).toBe(false)
+  })
+
+  it('reports multiple distinct babyNicknames sorted', () => {
+    const { preview } = parseAppCsv(csv(
+      makeRow({ entryId: 'e1', babyNickname: 'Zoe' }),
+      makeRow({ entryId: 'e2', babyNickname: 'Jojo' }),
+    ))
+    expect(preview.babyNames).toEqual(['Jojo', 'Zoe'])
+    expect(preview.hasBlankBabyName).toBe(false)
+  })
+
+  it('sets hasBlankBabyName when any row has blank babyNickname', () => {
+    const { preview } = parseAppCsv(csv(
+      makeRow({ entryId: 'e1', babyNickname: 'Jojo' }),
+      makeRow({ entryId: 'e2', babyNickname: '' }),
+    ))
+    expect(preview.hasBlankBabyName).toBe(true)
+    expect(preview.babyNames).toEqual(['Jojo'])
+  })
+
+  it('reports empty babyNames and hasBlankBabyName when all rows blank', () => {
+    const { preview } = parseAppCsv(csv(
+      makeRow({ entryId: 'e1', babyNickname: '' }),
+    ))
+    expect(preview.babyNames).toEqual([])
+    expect(preview.hasBlankBabyName).toBe(true)
+  })
+
+  it('does not include babyNickname in entry fields', () => {
+    const { entries } = parseAppCsv(csv(makeRow({ babyNickname: 'Jojo' })))
+    expect(entries[0]).not.toHaveProperty('babyNickname')
+  })
+
+  it('skipped rows do not contribute to babyNames', () => {
+    const { preview } = parseAppCsv(csv(
+      makeRow({ entryId: '', babyNickname: 'Ghost' }),
+      makeRow({ entryId: 'e1', babyNickname: 'Jojo' }),
+    ))
+    expect(preview.babyNames).toEqual(['Jojo'])
+  })
+})

@@ -109,9 +109,11 @@ export function parseAppCsv(text) {
   const idx = {}
   headerRow.forEach((h, i) => { idx[h] = i })
 
-  const entries    = []
-  const errors     = []
-  let   skippedRows = 0
+  const entries        = []
+  const errors         = []
+  let   skippedRows    = 0
+  let   hasBlankBabyName = false
+  const seenBabyNames  = new Set()
 
   for (let i = 1; i < all.length; i++) {
     const cols = all[i]
@@ -125,6 +127,9 @@ export function parseAppCsv(text) {
       errors.push(`Row ${i}: blank entryId — row skipped.`)
       continue
     }
+
+    const babyNickname = get('babyNickname')
+    if (babyNickname === '') { hasBlankBabyName = true } else { seenBabyNames.add(babyNickname) }
 
     // amountMl: blank → null, numeric string → number
     const amtStr   = get('amountMl')
@@ -187,11 +192,12 @@ export function parseAppCsv(text) {
     errors.push(`Duplicate entryId values: ${sample}${dupIds.length > 3 ? '…' : ''} — import blocked.`)
   }
 
-  const preview = buildPreview(entries, skippedRows)
+  const babyNamesArr = [...seenBabyNames].sort()
+  const preview = buildPreview(entries, skippedRows, babyNamesArr, hasBlankBabyName)
   return { entries, errors, preview }
 }
 
-function buildPreview(entries, skippedRows) {
+function buildPreview(entries, skippedRows, babyNames, hasBlankBabyName) {
   let totalMl      = 0
   let deletedCount = 0
   const dates      = []
@@ -214,5 +220,7 @@ function buildPreview(entries, skippedRows) {
     totalMl,
     dateRange:    dates.length ? { min: dates[0], max: dates[dates.length - 1] } : null,
     sources:      [...sources].sort(),
+    babyNames,
+    hasBlankBabyName,
   }
 }

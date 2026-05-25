@@ -76,6 +76,10 @@
               <span>{{ preview.dateRange?.min ?? '—' }} → {{ preview.dateRange?.max ?? '—' }}</span>
             </li>
             <li class="preview-list__row">
+              <span class="preview-list__label text-faint">Baby name in CSV</span>
+              <span>{{ preview.babyNames.length ? preview.babyNames.join(', ') : (preview.hasBlankBabyName ? '(blank)' : '—') }}</span>
+            </li>
+            <li class="preview-list__row">
               <span class="preview-list__label text-faint">Sources</span>
               <span>{{ preview.sources.length ? preview.sources.join(', ') : '—' }}</span>
             </li>
@@ -193,10 +197,16 @@ async function handleFile(event) {
     const text   = await file.text()
     const result = parseAppCsv(text)
     parsedEntries.value = result.entries
-    parseErrors.value   = result.errors
+    parseErrors.value   = [...result.errors]
     preview.value       = result.preview
     if (!result.preview) {
       parseError.value = result.errors[0] ?? 'Could not parse file.'
+    } else {
+      const { babyNames, hasBlankBabyName } = result.preview
+      const expectedName = activeBaby.value?.nickname ?? ''
+      if (hasBlankBabyName || babyNames.length !== 1 || babyNames[0] !== expectedName) {
+        parseErrors.value.push('CSV baby does not match the active baby.')
+      }
     }
   } catch (e) {
     console.error('[LegacyImportView] parse failed', e)
