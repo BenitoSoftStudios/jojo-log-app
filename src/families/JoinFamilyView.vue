@@ -1,38 +1,44 @@
 <!-- Invite acceptance flow.
      Route: /join-family?familyId=&inviteId=&code=
-     requiresAuth: false — auth is handled inside this component. -->
+     requiresAuth: false — auth is handled inline. Firestore is NOT touched
+     until the user is authenticated, to avoid permission-denied errors. -->
 <template>
   <div class="join-page">
     <div class="join-box">
 
-      <!-- Loading / validating -->
+      <!-- Loading -->
       <template v-if="step === 'init'">
-        <p class="text-soft text-sm">Validating invite…</p>
+        <p class="text-soft text-sm">Loading…</p>
       </template>
 
-      <!-- Invalid invite -->
+      <!-- Invalid / expired invite (only shown after auth) -->
       <template v-else-if="step === 'invalid'">
-        <h1 class="join-title">Invite invalid</h1>
+        <h1 class="join-title">Invite problem</h1>
         <p class="join-desc text-soft text-sm">{{ invalidReason }}</p>
-        <router-link class="join-link text-sm" to="/login">Go to sign in</router-link>
+        <router-link class="join-link text-sm" to="/">Go to app</router-link>
       </template>
 
-      <!-- Already a member of a family -->
+      <!-- Already a member of THIS family -->
+      <template v-else-if="step === 'already-joined'">
+        <h1 class="join-title">Already joined!</h1>
+        <p class="join-desc text-soft text-sm">You're already a member of this family. Redirecting to ledger…</p>
+      </template>
+
+      <!-- Member of a DIFFERENT family -->
       <template v-else-if="step === 'existing-member'">
         <h1 class="join-title">Already in a family</h1>
         <p class="join-desc text-soft text-sm">
-          Your account is already linked to a family on Jojo's Log.
-          Sign in to a different account to accept this invite.
+          Your account is already linked to a different family on Jojo's Log.
+          Sign in with a different account to accept this invite.
         </p>
         <router-link class="join-link text-sm" to="/">Go to ledger</router-link>
       </template>
 
-      <!-- Sign in / create account inline -->
+      <!-- Not signed in — show auth form BEFORE any Firestore calls -->
       <template v-else-if="step === 'auth'">
-        <h1 class="join-title">Join {{ familyName || 'family' }}</h1>
+        <h1 class="join-title">Accept family invite</h1>
         <p class="join-desc text-soft text-sm">
-          You've been invited to join as a caregiver.
-          Sign in or create an account to continue.
+          Sign in or create an account to accept this invite and join your family on Jojo's Log.
         </p>
 
         <div class="mode-toggle">
@@ -83,6 +89,11 @@
         </form>
       </template>
 
+      <!-- Validating invite after auth -->
+      <template v-else-if="step === 'validating'">
+        <p class="text-soft text-sm">Validating invite…</p>
+      </template>
+
       <!-- Display label form -->
       <template v-else-if="step === 'form'">
         <h1 class="join-title">Join {{ familyName || 'family' }}</h1>
@@ -123,11 +134,6 @@
         </form>
       </template>
 
-      <!-- Joining in progress (non-form state) -->
-      <template v-else-if="step === 'joining'">
-        <p class="text-soft text-sm">Joining…</p>
-      </template>
-
       <!-- Done -->
       <template v-else-if="step === 'done'">
         <p class="text-soft text-sm">Joined! Redirecting…</p>
@@ -160,17 +166,19 @@ const qFamilyId = route.query.familyId
 const qInviteId = route.query.inviteId
 const qCode     = route.query.code
 
+// step: 'init' | 'auth' | 'validating' | 'invalid' | 'already-joined' |
+//       'existing-member' | 'form' | 'done'
 const step          = ref('init')
 const invite        = ref(null)
 const familyName    = ref('')
 const invalidReason = ref('')
 
-const authMode     = ref('signin')
-const authEmail    = ref('')
-const authPassword = ref('')
-const authLoading  = ref(false)
-const authError    = ref('')
-const emailInput   = ref(null)
+const authMode      = ref('signin')
+const authEmail     = ref('')
+const authPassword  = ref('')
+const authLoading   = ref(false)
+const authError     = ref('')
+const emailInput    = ref(null)
 const passwordInput = ref(null)
 
 const displayLabel = ref('')
@@ -187,64 +195,93 @@ onMounted(async () => {
     })
   }
 
+  // Validate URL params first — no Firestore calls yet.
   if (!qFamilyId || !qInviteId || !qCode) {
-    invalidReason.value = 'This invite link is incomplete or invalid.'
+    invalidReason.value = 'This invite link is missing required information.'
     step.value = 'invalid'
     return
   }
 
+  // Gate Firestore on auth. Unauthenticated reads would fail with
+  // permission-denied and produce a misleading "Invite invalid" message.
+  if (!currentUser.value) {
+    step.value = 'auth'
+    return
+  }
+
+  await validateAndAdvance()
+})
+
+// Fetches and validates the invite from Firestore, then checks family
+// membership. Must only be called after the user is signed in.
+async function validateAndAdvance() {
+  step.value = 'validating'
+
+  // Fetch invite; surface permission-denied distinctly.
+  let inv = null
   try {
-    const [inv, fam] = await Promise.allSettled([
-      getInvite(qFamilyId, qInviteId),
-      getFamily(qFamilyId),
-    ])
-    invite.value = inv.status === 'fulfilled' ? inv.value : null
-    familyName.value = fam.status === 'fulfilled' ? (fam.value?.name ?? '') : ''
-  } catch {
-    invalidReason.value = 'Could not load invite.'
+    inv = await getInvite(qFamilyId, qInviteId)
+  } catch (e) {
+    if (e?.code === 'permission-denied') {
+      invalidReason.value = 'Could not verify invite permissions. Make sure you are signed in to the right account.'
+    } else {
+      invalidReason.value = 'Could not load invite. Check your connection and try again.'
+    }
     step.value = 'invalid'
     return
   }
 
-  if (!invite.value || invite.value.code !== qCode) {
+  // Fetch family name opportunistically (non-blocking on failure).
+  try {
+    const fam = await getFamily(qFamilyId)
+    familyName.value = fam?.name ?? ''
+  } catch {
+    familyName.value = ''
+  }
+
+  invite.value = inv
+
+  if (!inv || inv.code !== qCode) {
     invalidReason.value = 'This invite link is not valid.'
     step.value = 'invalid'
     return
   }
-  if (invite.value.status === 'accepted') {
+  if (inv.status === 'accepted') {
     invalidReason.value = 'This invite has already been accepted.'
     step.value = 'invalid'
     return
   }
-  if (invite.value.status === 'revoked') {
+  if (inv.status === 'revoked') {
     invalidReason.value = 'This invite has been revoked by the owner.'
     step.value = 'invalid'
     return
   }
-  if (invite.value.status !== 'active') {
+  if (inv.status !== 'active') {
     invalidReason.value = 'This invite is no longer active.'
     step.value = 'invalid'
     return
   }
 
-  await advanceFromAuth()
-})
-
-async function advanceFromAuth() {
-  if (!currentUser.value) {
-    step.value = 'auth'
-    return
-  }
+  // Check existing family membership.
   let existingFamilyId = null
   try {
     existingFamilyId = await findFamilyIdForUser(currentUser.value.uid)
   } catch {
-    // If lookup fails, assume no family and proceed — worst case the join will fail
+    // If lookup fails, proceed — worst case handleJoin will surface the error.
+  }
+
+  if (existingFamilyId === qFamilyId) {
+    // Already a member of this exact family — redirect to ledger.
+    step.value = 'already-joined'
+    setTimeout(() => router.push('/'), 1500)
+    return
   }
   if (existingFamilyId) {
+    // Member of a different family — blocked.
     step.value = 'existing-member'
     return
   }
+
   step.value = 'form'
 }
 
@@ -259,7 +296,8 @@ async function handleAuth() {
     } else {
       await signIn(emailVal, passVal)
     }
-    await advanceFromAuth()
+    // Invite params are preserved in the URL — validate now that we're authed.
+    await validateAndAdvance()
   } catch (e) {
     authError.value = friendlyAuthError(e.code)
   } finally {
