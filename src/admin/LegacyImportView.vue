@@ -14,10 +14,10 @@
 
     <template v-else>
 
-      <!-- Preview-only notice -->
+      <!-- Notice -->
       <div class="notice-banner text-sm">
-        <strong>Preview only.</strong> No data will be written in this phase.
-        Actual import writes and purge deletions happen in a later explicit phase.
+        <strong>Import: preview only.</strong> No legacy entry data will be written in this phase.
+        Purge test entries is available below.
         The CSV is parsed in your browser only — it is never uploaded or saved to Firestore.
       </div>
 
@@ -142,30 +142,38 @@
           </div>
         </section>
 
-        <!-- Purge panel (preview only) -->
+        <!-- Purge panel -->
         <section class="section section--purge">
-          <h2 class="section-title">Purge Test Entries <span class="section-title__badge text-xs">Preview only</span></h2>
-          <p class="text-faint text-sm">
-            Shows entries that would be removed before import (source ≠ "legacy").
-            Nothing is deleted in this phase.
-          </p>
+          <h2 class="section-title">Purge Test Entries</h2>
 
-          <div v-if="purgeableCount === 0" class="text-faint text-sm">
+          <div class="alert alert--warn text-sm">
+            This permanently removes test entries (source ≠ "legacy") for
+            <strong>{{ activeBaby.nickname }}</strong> only.
+            Legacy feeds, babies, family, members, and weekly settings are not touched.
+            This action cannot be undone.
+          </div>
+
+          <div v-if="purgeSuccess" class="alert alert--ready text-sm">
+            Done. Removed {{ purgeSuccess.deleted }} test
+            {{ purgeSuccess.deleted === 1 ? 'entry' : 'entries' }}.
+            <span v-if="purgeSuccess.skipped > 0">
+              Skipped {{ purgeSuccess.skipped }} legacy
+              {{ purgeSuccess.skipped === 1 ? 'entry' : 'entries' }}.
+            </span>
+          </div>
+
+          <div v-else-if="purgeableCount === 0" class="text-faint text-sm" style="margin-top:var(--space-3)">
             No purgeable entries found for this baby.
           </div>
 
           <template v-else>
-            <p class="text-sm">
+            <p class="text-sm" style="margin-top:var(--space-3)">
               Purgeable entries for <strong>{{ activeBaby.nickname }}</strong>:
               <strong>{{ purgeableCount }}</strong>
             </p>
 
             <ul class="purge-sample text-sm">
-              <li
-                v-for="e in purgeSample"
-                :key="e.id"
-                class="purge-sample__row"
-              >
+              <li v-for="e in purgeSample" :key="e.id" class="purge-sample__row">
                 <span class="text-faint">{{ e.entryDate }}</span>
                 <span class="text-faint">{{ e.entryTime }}</span>
                 <span>{{ e.amountMl ?? '—' }} mL</span>
@@ -176,10 +184,28 @@
               … and {{ purgeableCount - 5 }} more.
             </p>
 
-            <p class="text-faint text-sm purge-phrase-hint">
-              Actual purge (in a future phase) will require typing:
-              <code>PURGE TEST ENTRIES</code>
-            </p>
+            <div class="confirm-section">
+              <p class="text-sm">
+                Type <strong>PURGE TEST ENTRIES</strong> to enable the button.
+              </p>
+              <input
+                class="confirm-input"
+                type="text"
+                v-model="purgePhrase"
+                placeholder="PURGE TEST ENTRIES"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button
+                class="purge-btn"
+                type="button"
+                :disabled="purgePhrase !== 'PURGE TEST ENTRIES' || purging"
+                @click="handlePurge"
+              >
+                {{ purging ? 'Purging…' : 'Purge test entries' }}
+              </button>
+              <p v-if="purgeError" class="alert alert--error text-sm">{{ purgeError }}</p>
+            </div>
           </template>
         </section>
 
@@ -196,6 +222,7 @@ import { useFamily }  from '@/families/useFamily.js'
 import { useBabies }  from '@/babies/useBabies.js'
 import { useEntries } from '@/entries/useEntries.js'
 import { parseRows, transformRows, validateRows } from '@/utils/legacyCsvParser.js'
+import { purgeTestEntries } from '@/entries/useAdminEntryPurge.js'
 
 const router = useRouter()
 
@@ -221,7 +248,7 @@ const importReady = computed(() =>
   confirmPhrase.value === expectedPhrase.value
 )
 
-// Purge panel — entries where source is not "legacy"
+// Purge panel
 const purgeableEntries = computed(() => {
   const all = [...liveEntries.value, ...deletedEntries.value]
   return all.filter(e => e.source !== 'legacy')
@@ -229,6 +256,28 @@ const purgeableEntries = computed(() => {
 
 const purgeableCount = computed(() => purgeableEntries.value.length)
 const purgeSample    = computed(() => purgeableEntries.value.slice(0, 5))
+
+const purgePhrase  = ref('')
+const purging      = ref(false)
+const purgeError   = ref('')
+const purgeSuccess = ref(null)
+
+async function handlePurge() {
+  if (purgePhrase.value !== 'PURGE TEST ENTRIES') return
+  purging.value    = true
+  purgeError.value = ''
+  purgeSuccess.value = null
+  try {
+    const result = await purgeTestEntries(purgeableEntries.value)
+    purgeSuccess.value = result
+    purgePhrase.value  = ''
+  } catch (e) {
+    console.error('[LegacyImportView] purge failed', e)
+    purgeError.value = `Purge failed: ${e.message}`
+  } finally {
+    purging.value = false
+  }
+}
 
 async function handleFile(event) {
   parseError.value    = ''
@@ -445,14 +494,19 @@ async function handleFile(event) {
 
 .purge-sample__row:last-child { border-bottom: none; }
 
-.purge-phrase-hint {
-  margin-top: var(--space-3);
-}
-
-.purge-phrase-hint code {
-  font-family: monospace;
-  background: var(--color-row-week);
-  padding: 1px 4px;
+.purge-btn {
+  margin-top: var(--space-2);
+  background: none;
+  border: 1px solid var(--color-error);
   border-radius: var(--radius-sm);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-error);
+  cursor: pointer;
+  padding: var(--space-2) var(--space-4);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
+.purge-btn:disabled { opacity: 0.4; cursor: default; }
+.purge-btn:not(:disabled):active { filter: brightness(0.9); }
 </style>
