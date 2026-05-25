@@ -1,100 +1,74 @@
-# Phase 8B — Firestore Rules Deployment Package (Revised)
+# Phase 8B — Firestore Rules Deployment Package (Phase 8B-2)
 
 **Date:** 2026-05-25
-**Revision:** Phase 8B-1 — both blockers resolved, rules revised.
+**Revision:** Phase 8B-2 — all three blockers addressed.
 **Status:** Package only — no rules deployed. Manual deployment required.
 
 ---
 
-## 0. Corrections from Phase 8A / original Phase 8B
+## Revision history
 
-| Issue | Correction |
-|-------|-----------|
-| Phase 8A assumed `memberIds` array on family doc | Does not exist. Membership is determined by presence of active doc in `members/{uid}` subcollection. |
-| Phase 8A assumed `ownerUid` field on family doc | Does not exist. Ownership is determined by `members/{uid}.role == 'owner'`. |
-| Original Phase 8B member-create rule allowed arbitrary family joining | Fixed — see Blocker 1 resolution. |
-| Original Phase 8B entry-create rule allowed caregivers to write any source | Fixed — see Blocker 2 resolution. |
-
----
-
-## 1. Current loose-rules risk summary
-
-The current Firebase Console rules are described as loose private-rebuild rules.
-This typically means something like:
-
-```
-allow read, write: if request.auth != null;
-```
-
-applied broadly. The risks:
-
-| Risk | Severity |
-|------|----------|
-| Any signed-in user can read any family's babies and entries | High |
-| Any signed-in user can write/modify any family's entries | High |
-| Any signed-in user can create or revoke invites in any family | High |
-| Any signed-in user can overwrite any baby doc | High |
-| `legacyImportAdmin` can be self-granted on own member doc | High |
-| Hard `deleteDoc` on entries is allowed (app never calls it, but rule doesn't block it) | Medium |
-| Any signed-in user can join any family without an invite | High |
+| Revision | Date | Change |
+|----------|------|--------|
+| Original 8B | 2026-05-25 | Initial package. Member-create lacked invite enforcement. Entry update only protected `source`. |
+| 8B-1 | 2026-05-25 | Added `joinedViaInviteId` to member-create rule. Added `sourceUnchanged` to entry update. `createdByUserId`/`createdByLabel`/`createdAt` still app-layer only. |
+| **8B-2** | **2026-05-25** | **All three blockers resolved. Full protected-fields enforcement on entry update. Admin update bypass for batch.set re-imports.** |
 
 ---
 
-## 2. Blocker 1 resolution — invite-validated member create
+## Data model reference
 
-### The problem
+**No `memberIds` array on the family doc. No `ownerUid` on the family doc.**
+All membership/ownership checks use `get()` on `families/{fId}/members/{uid}`.
 
-The previous rule allowed any signed-in user to create a caregiver member doc in
-ANY family as long as they knew or guessed the `familyId`. The report admitted
-"invite-code validation is handled in app code" — this is insufficient for
-hardened rules.
+| Path | Relevant fields |
+|------|----------------|
+| `families/{fId}` | name, timezone, unitPreference, createdByUserId |
+| `families/{fId}/members/{uid}` | userId, role ('owner'/'caregiver'), active, legacyImportAdmin |
+| `families/{fId}/babies/{bId}` | nickname, status |
+| `families/{fId}/babies/{bId}/entries/{eId}` | entryDate, entryTime, amountMl, diaper, vitaminD, medication, tummyTime, tummyTimeCount, notes, source, createdByUserId, createdByLabel, createdAt, updatedByUserId, updatedByLabel, updatedAt, deleted, deletedAt, deletedByUserId, deletedByLabel |
+| `families/{fId}/babies/{bId}/weeklySettings/{wk}` | usualBottleAmountMl, createdByUserId, updatedByUserId |
+| `families/{fId}/invites/{iId}` | inviteId, code, role, status, createdByUserId, acceptedByUserId, revokedByUserId |
 
-### Investigation results
+---
 
-**What `addMember()` writes to `families/{familyId}/members/{userId}`:**
+## 1. Blocker 1 — invite-enforced member create
+
+### Status: already resolved in Phase 8B-1, confirmed here
+
+The member-create rule requires `joinedViaInviteId` that points to an active
+invite in the same `familyId`. This was added in Phase 8B-1. One additional
+field constraint is added in 8B-2: `request.resource.data.userId == request.auth.uid`
+ensures the `userId` field stored on the member doc matches the creating user.
+
+### What `addMember()` writes
+
 ```js
-{
-  userId, email, role, displayLabel, initials,
+{ userId, email, role, displayLabel, initials,
   joinedAt: serverTimestamp(),
   invitedByUserId: null,
-  joinedViaInviteId,   // ← already present; set to qInviteId from URL
-  active: true
-}
+  joinedViaInviteId,   // ← set to qInviteId from URL params
+  active: true }
 ```
 
-`joinedViaInviteId` is already present on every member doc created via the join
-flow. No app or schema change is required.
+`joinedViaInviteId` is already present — no schema change needed.
 
-**What the invite doc contains** (`families/{familyId}/invites/{inviteId}`):
-```
-inviteId, code, role, status, createdAt, createdByUserId, createdByLabel,
-acceptedAt, acceptedByUserId, acceptedByLabel,
-revokedAt, revokedByUserId, revokedByLabel
-```
+### Can rules verify the invite CODE?
 
-**Can rules verify the invite CODE?**
 No. The 16-char hex `code` is in the URL but not stored on the member doc.
-Rules can only verify that `joinedViaInviteId` points to an invite that exists
-and has `status == 'active'`. Code verification is app-side only
-(`JoinFamilyView.validateAndAdvance()` checks `inv.code !== qCode` before
-allowing the user to proceed to the join form).
+Rules verify that the `joinedViaInviteId` points to an invite that exists and
+has `status == 'active'`. Code verification is app-side only.
 
-**Is inviteId entropy sufficient without code verification in rules?**
-Yes — for a private family app. The `inviteId` is a Firebase auto-generated
-document ID (~160-bit address space, cryptographically random). Combined with
-the invite `code` (64 bits, verified app-side), the probability of guessing a
-valid `{familyId, inviteId}` pair is negligible. The Firestore rule verifying
-invite existence and active status provides meaningful hardening: a rogue write
-requires knowing a valid, active `inviteId` under the target `familyId`.
+For a private family app, the `inviteId` entropy (~160-bit Firestore auto-ID)
+combined with the app-side code check is sufficient. A rogue write would require
+knowing a valid, active `{familyId, inviteId}` pair — neither is guessable.
 
-### The fix
-
-No app or schema change is needed. The rules use `joinedViaInviteId` (already
-on the member doc) to do a `get()` on the invite doc at rules evaluation time:
+### Member-create rule
 
 ```
 allow create: if request.auth != null
     && memberId == request.auth.uid
+    && request.resource.data.userId == request.auth.uid
     && 'joinedViaInviteId' in request.resource.data
     && request.resource.data.joinedViaInviteId is string
     && request.resource.data.joinedViaInviteId != ''
@@ -105,145 +79,145 @@ allow create: if request.auth != null
     && !('legacyImportAdmin' in request.resource.data);
 ```
 
-This enforces:
-- Doc ID must match the creating user's own UID (cannot create a member doc for another user)
-- `joinedViaInviteId` must reference an invite that EXISTS under this same `familyId`
-- That invite must currently be `status: 'active'` (not revoked or already accepted)
-- Role is pinned to `'caregiver'` (cannot self-elevate to owner)
-- `legacyImportAdmin` flag must not be present (Console-only flag)
-
-**Residual limitation:** A race condition exists where two users could
-simultaneously accept the same active invite before either `acceptInvite()`
-call marks it as `'accepted'`. For a private family app, this is acceptable.
-Eliminating it would require a Cloud Function transaction.
-
 ---
 
-## 3. Blocker 2 resolution — Import CSV restricted to legacyImportAdmin
+## 2. Blocker 2 — entry-create restricted by source and createdByLabel
 
 ### The problem
 
-The previous rules allowed any active member to create entries with any `source`
-value. Import CSV is app-gated by `legacyImportAdmin`, but a technically
-sophisticated caregiver could bypass the UI via direct Firestore writes.
+Any active member could create an entry with `source: 'legacy'` or
+`createdByLabel: 'Legacy'` by bypassing the UI. The previous rule only restricted
+`source != 'app'`; the brief additionally requires blocking `createdByLabel == 'Legacy'`.
 
-### Investigation results
+### What each write path produces
 
-**Source values used by each write path:**
-- `entryService.createEntry()` — always writes `source: 'app'`
-- `writeAppCsvEntries()` — preserves `source` from the CSV row (may be `'app'`,
-  `'legacy'`, or others depending on the original export)
-- `writeLegacyEntries()` — writes `source: 'legacy-csv'`
+| Writer | source | createdByLabel | createdByUserId |
+|--------|--------|---------------|----------------|
+| `entryService.createEntry()` | `'app'` | `member.displayLabel` | `member.userId` |
+| `writeAppCsvEntries()` | from CSV (`'app'`, `'legacy'`, etc.) | from CSV | **not written** |
+| `writeLegacyEntries()` | from CSV (`'legacy-csv'`, etc.) | from CSV | from CSV |
 
-**`MUTABLE_FIELDS` in `entryService.updateEntry()`:**
-```js
-const MUTABLE_FIELDS = new Set([
-  'entryDate', 'entryTime', 'amountMl', 'diaper',
-  'vitaminD', 'medication', 'tummyTime', 'tummyTimeCount', 'notes'
-])
-```
-`source` is not in `MUTABLE_FIELDS`. The app service layer never changes `source`
-on update. Rules will enforce this at the database level.
+### Entry-create rule
 
-**Can rules distinguish a batch.set() re-import from a normal updateDoc()?**
-No. Both trigger the `update` rule when the doc already exists. However:
-- `batch.set()` on re-import writes `source: entry.source` (same value as before)
-- `updateDoc()` in normal app flow never includes `source` in the payload, so
-  `request.resource.data.source` equals the existing `resource.data.source`
-- In both cases, `sourceUnchanged()` returns true ✓
-
-**Why not also protect `createdByUserId`, `createdByLabel`, `createdAt` in the update rule?**
-`writeAppCsvEntries` does NOT include `createdByUserId` in its `batch.set()` payload.
-A re-import that overwrites a doc previously created via the normal app flow would
-have `resource.data.createdByUserId == 'someUid'` but `request.resource.data.createdByUserId`
-absent/null — the rule would block legitimate re-imports. These fields are
-protected by the app service layer (`MUTABLE_FIELDS` never includes them) and are
-not enforced at the Firestore rules level. This is a documented limitation.
-
-### The fix
-
-**Entry create — source gate:**
 ```
 allow create: if isMember(familyId)
     && validEntry(request.resource.data)
     && (
-      request.resource.data.source == 'app'
+      (request.resource.data.source == 'app'
+       && request.resource.data.get('createdByLabel', '') != 'Legacy')
       || isLegacyImportAdmin(familyId)
     );
 ```
 
 This enforces:
-- Caregivers can only create entries with `source == 'app'` (normal app flow)
-- Entries with any other source (`'legacy'`, `'legacy-csv'`, etc.) require
-  `legacyImportAdmin`
-- `writeAppCsvEntries` entries with `source: 'app'` are allowed for all members
-  at the rules level; the Import CSV UI gate prevents caregiver access
+- Normal members may only create entries with `source == 'app'` AND
+  `createdByLabel != 'Legacy'`
+- Any other source value OR `createdByLabel == 'Legacy'` requires `legacyImportAdmin`
+- Both `writeAppCsvEntries` and `writeLegacyEntries` require `isLegacyImportAdmin`
+  because their entries may have non-app source values
 
-**Entry update — source immutability:**
-```
-allow update: if isMember(familyId)
-    && validEntry(request.resource.data)
-    && sourceUnchanged(request.resource.data, resource.data);
-
-function sourceUnchanged(newData, oldData) {
-  return newData.source == oldData.source;
-}
-```
-
-This prevents any user (including owners) from changing an entry's `source` field
-after creation. The app never needs to do this.
-
-**`isLegacyImportAdmin` helper:**
-```
-function isLegacyImportAdmin(familyId) {
-  return request.auth != null
-      && exists(memberPath(familyId))
-      && get(memberPath(familyId)).data.active == true
-      && get(memberPath(familyId)).data.role == 'owner'
-      && get(memberPath(familyId)).data.get('legacyImportAdmin', false) == true;
-}
-```
-
-The `.get('legacyImportAdmin', false)` default handles member docs where the
-field is absent (all existing caregivers and owners without the flag).
-
-### What rules DO NOT restrict for caregivers
-
-- Writing individual entries with `source: 'app'` via direct Firestore calls
-  (equivalent to creating normal app entries — not a new capability)
-- Access to `createdByUserId`, `createdByLabel`, `createdAt` (protected by app
-  service layer via `MUTABLE_FIELDS`)
+**Note:** A user whose display label is literally "Legacy" cannot create normal
+app entries with the current rule. This is a known limitation: it is an extremely
+unlikely display label, and the rule can be relaxed if needed.
 
 ---
 
-## 4. Other reviews (per Phase 8B-1 brief)
+## 3. Blocker 3 — entry-update protected fields + admin bypass
 
-### Entry update protected fields
+### The problem
 
-| Field | Protection method |
-|-------|------------------|
-| `source` | Rules: `sourceUnchanged()` on update |
-| `createdByUserId` | App layer: not in `MUTABLE_FIELDS` |
-| `createdByLabel` | App layer: not in `MUTABLE_FIELDS` |
-| `createdAt` | App layer: not in `MUTABLE_FIELDS` |
-| `deletedByUserId` | Intentionally mutable (softDelete/restore) |
-| `deletedByLabel` | Intentionally mutable (softDelete/restore) |
+The Phase 8B-1 update rule only protected `source` via `sourceUnchanged()`.
+`createdByUserId`, `createdByLabel`, `createdAt` remained unprotected at the
+rules level (only app-layer `MUTABLE_FIELDS` in `entryService` prevented changes).
 
-### Baby settings and weeklySettings for caregivers
+The brief requires rules-level enforcement of all four protected fields on update.
 
-Caregivers can read and write `weeklySettings` (usual bottle amount). This is
-intentional — caregivers need to see and set the weekly bottle target.
-Baby doc `create` and `update` remain owner-only. ✓
+### The re-import conflict
 
-### Owner invite create/revoke
+`writeAppCsvEntries` does a `batch.set()` full overwrite. It does **not** write
+`createdByUserId` to the document. For an existing entry originally created via
+the app (which has `createdByUserId: 'uid123'`), the re-import produces:
 
-`allow read, write: if isOwner(familyId)` covers all owner invite operations.
-Caregivers are gated out of invite management except for the single acceptance
-write (tightly scoped to `status == 'accepted'` and own UID). ✓
+- `request.resource.data.createdByUserId` → null (absent from `batch.set()` payload)
+- `resource.data.createdByUserId` → `'uid123'` (existing doc)
+- Comparison: `null != 'uid123'` → blocked
 
-### /feeds recommendation
+This means `protectedFieldsUnchanged` **cannot** be applied to the re-import path
+without breaking idempotent re-imports of app-created entries.
 
-Same as before: deploy with NO feeds rule (Option A). See §11 for detail.
+### Solution: two separate update rules
+
+Firestore allows multiple `allow` rules for the same operation — they are OR'd.
+
+```
+// Normal member update: mutable care fields + soft-delete fields only.
+// Protected provenance fields must not change.
+allow update: if isMember(familyId)
+    && validEntry(request.resource.data)
+    && protectedFieldsUnchanged(request.resource.data, resource.data);
+
+// Admin update: unrestricted full overwrite.
+// Covers batch.set() re-imports from both writeAppCsvEntries and writeLegacyEntries.
+allow update: if isLegacyImportAdmin(familyId);
+```
+
+The `protectedFieldsUnchanged` helper:
+
+```
+function protectedFieldsUnchanged(newData, oldData) {
+  return newData.source          == oldData.source
+      && newData.createdByUserId == oldData.get('createdByUserId', null)
+      && newData.createdByLabel  == oldData.get('createdByLabel', null)
+      && newData.createdAt       == oldData.get('createdAt', null);
+}
+```
+
+Using `.get(field, null)` handles fields absent from CSV-imported entries.
+
+### Why `updateDoc()` passes `protectedFieldsUnchanged`
+
+`updateDoc()` sends only the changed fields. Firestore projects the result as a
+full document in `request.resource.data`. Unchanged fields (including protected
+ones) retain their existing values. Therefore:
+
+- `entryService.updateEntry()`: `MUTABLE_FIELDS` only → protected fields
+  unchanged → passes ✓
+- `softDeleteEntry()`: deleted, deletedAt, deletedByUserId, deletedByLabel,
+  updatedAt → protected fields unchanged → passes ✓
+- `restoreEntry()`: deleted, deletedAt, deletedByUserId, deletedByLabel,
+  updatedAt → protected fields unchanged → passes ✓
+
+### Why the admin bypass is needed
+
+`writeAppCsvEntries` `batch.set()` is a full document overwrite that does not
+include `createdByUserId`. On re-import of an app-created entry, the comparison
+`null == 'uid123'` fails. The admin update rule bypasses this check.
+
+**This is intentional and acceptable:** `legacyImportAdmin` is a Console-only
+flag. An admin doing a CSV re-import is explicitly trusted to overwrite provenance
+fields. The app-level baby safety check (Phase 8A) prevents accidental cross-baby
+imports.
+
+### Side effect of writeAppCsvEntries re-import
+
+When `writeAppCsvEntries` overwrites an app-created entry, the resulting doc will
+not have `createdByUserId`, `tummyTime`, `deletedByUserId`, `deletedByLabel`, or
+`updatedByUserId` (none of these are in the `batch.set()` payload). This is an
+existing data behaviour — not introduced by these rules — but is worth noting as
+a reason to avoid re-importing unless necessary.
+
+---
+
+## 4. Current loose-rules risk summary
+
+| Risk | Severity |
+|------|----------|
+| Any signed-in user can read any family's babies and entries | High |
+| Any signed-in user can write entries in any family | High |
+| Any signed-in user can join any family without an invite | High |
+| Any signed-in user can create or revoke invites in any family | High |
+| `legacyImportAdmin` can be self-granted | High |
+| Hard `deleteDoc` on entries is allowed (app never calls it) | Medium |
 
 ---
 
@@ -257,20 +231,19 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     // ── Path helper ──────────────────────────────────────────────────────────
+
     function memberPath(familyId) {
       return /databases/$(database)/documents/families/$(familyId)/members/$(request.auth.uid);
     }
 
     // ── Access helpers ───────────────────────────────────────────────────────
 
-    // True if requesting user has an active member doc in this family.
     function isMember(familyId) {
       return request.auth != null
           && exists(memberPath(familyId))
           && get(memberPath(familyId)).data.active == true;
     }
 
-    // True if requesting user is an active owner of this family.
     function isOwner(familyId) {
       return request.auth != null
           && exists(memberPath(familyId))
@@ -278,10 +251,9 @@ service cloud.firestore {
           && get(memberPath(familyId)).data.role == 'owner';
     }
 
-    // True if requesting user is owner AND has legacyImportAdmin flag.
-    // legacyImportAdmin must be set via Firebase Console only —
-    // the app never writes this field, and the update rule prevents
-    // owners from changing it via the app.
+    // legacyImportAdmin must be set via Firebase Console only.
+    // The app never writes this field; the member-update rule prevents
+    // owners from granting it via the app.
     function isLegacyImportAdmin(familyId) {
       return request.auth != null
           && exists(memberPath(familyId))
@@ -299,8 +271,13 @@ service cloud.firestore {
           && (data.diaper    == null || data.diaper    is string);
     }
 
-    function sourceUnchanged(newData, oldData) {
-      return newData.source == oldData.source;
+    // Protects source, createdByUserId, createdByLabel, createdAt from
+    // being changed via normal member updates. Not applied to admin updates.
+    function protectedFieldsUnchanged(newData, oldData) {
+      return newData.source          == oldData.source
+          && newData.createdByUserId == oldData.get('createdByUserId', null)
+          && newData.createdByLabel  == oldData.get('createdByLabel', null)
+          && newData.createdAt       == oldData.get('createdAt', null);
     }
 
     // ── Family doc ────────────────────────────────────────────────────────────
@@ -311,11 +288,11 @@ service cloud.firestore {
 
       // ── Members ──────────────────────────────────────────────────────────
       match /members/{memberId} {
-        // Any active member can read member docs in their family.
         allow read: if isMember(familyId);
 
-        // Owners can update member docs. The legacyImportAdmin flag may not
-        // change via the app — it must be set via Firebase Console only.
+        // Owners can update member docs but cannot grant legacyImportAdmin
+        // via the app — that field must remain equal to its current stored
+        // value (or absent) on any owner-driven update.
         allow update: if isOwner(familyId)
             && (
               !('legacyImportAdmin' in request.resource.data)
@@ -323,12 +300,16 @@ service cloud.firestore {
                  == resource.data.get('legacyImportAdmin', false)
             );
 
-        // A signed-in user may create their own member doc (join-family flow)
-        // only if they supply a joinedViaInviteId that references an active
-        // invite in this same family. Invite code is verified app-side;
-        // inviteId entropy (~160 bits) is sufficient for private-family use.
+        // A signed-in user may create their own member doc only when:
+        //   - Doc ID and userId field both match the creating user's UID.
+        //   - joinedViaInviteId references an active invite in this family.
+        //   - Role is pinned to 'caregiver'.
+        //   - legacyImportAdmin must not be present.
+        // Invite code is verified app-side; inviteId entropy is sufficient
+        // for private-family use.
         allow create: if request.auth != null
             && memberId == request.auth.uid
+            && request.resource.data.userId == request.auth.uid
             && 'joinedViaInviteId' in request.resource.data
             && request.resource.data.joinedViaInviteId is string
             && request.resource.data.joinedViaInviteId != ''
@@ -351,25 +332,30 @@ service cloud.firestore {
         match /entries/{entryId} {
           allow read: if isMember(familyId);
 
-          // Any active member may create entries with source == 'app'.
-          // Any other source value (legacy, legacy-csv, etc.) requires
-          // legacyImportAdmin. The Import CSV UI gate enforces this in the
-          // app for all caregiver users.
+          // Normal members may create entries with source == 'app' and
+          // createdByLabel != 'Legacy'. Any other source or the 'Legacy'
+          // label requires legacyImportAdmin (covers both import writers).
           allow create: if isMember(familyId)
               && validEntry(request.resource.data)
               && (
-                request.resource.data.source == 'app'
+                (request.resource.data.source == 'app'
+                 && request.resource.data.get('createdByLabel', '') != 'Legacy')
                 || isLegacyImportAdmin(familyId)
               );
 
-          // Any active member may update entries. source may not change.
-          // Fields like createdByUserId, createdByLabel, createdAt are
-          // protected at the app service layer (not in MUTABLE_FIELDS).
+          // Normal member update: mutable care fields + soft-delete fields
+          // only. Protected provenance fields (source, createdByUserId,
+          // createdByLabel, createdAt) must remain unchanged.
           allow update: if isMember(familyId)
               && validEntry(request.resource.data)
-              && sourceUnchanged(request.resource.data, resource.data);
+              && protectedFieldsUnchanged(request.resource.data, resource.data);
 
-          // Hard delete is forbidden. Soft-delete only (deleted: true via update).
+          // Admin update: unrestricted. Covers idempotent batch.set()
+          // re-imports from writeAppCsvEntries and writeLegacyEntries,
+          // which may not include all provenance fields in their payload.
+          allow update: if isLegacyImportAdmin(familyId);
+
+          // Hard delete forbidden. Soft-delete only via update (deleted: true).
           allow delete: if false;
         }
 
@@ -387,14 +373,11 @@ service cloud.firestore {
         allow read, write: if isOwner(familyId);
 
         // Any signed-in user may GET (not list) a specific invite doc.
-        // Needed for the join-family flow: JoinFamilyView fetches the invite
-        // by ID after the user is authenticated, before any member write.
+        // Required for the join-family flow before the user is a member.
         allow get: if request.auth != null;
 
-        // Active members (non-owner) may mark an invite as accepted.
-        // Called in the join flow after addMember() creates the member doc.
-        // Constrained: status must be 'accepted', acceptedByUserId must be
-        // the requesting user's own UID.
+        // Active members (non-owner) may mark their own invite as accepted.
+        // Called after addMember() creates the member doc.
         allow update: if isMember(familyId)
             && request.resource.data.status == 'accepted'
             && request.resource.data.acceptedByUserId == request.auth.uid;
@@ -408,19 +391,25 @@ service cloud.firestore {
 
 ## 6. Required app/schema changes before deployment
 
-**None.** Both blockers are resolved with the current schema:
-- Blocker 1: `joinedViaInviteId` already written by `addMember()` ✓
-- Blocker 2: `source` field already written by all entry create paths ✓
+**None.** All three blockers are resolved with the current schema and app code:
+
+| Blocker | Resolution | App change? |
+|---------|-----------|------------|
+| 1 — arbitrary family joining | `joinedViaInviteId` already written by `addMember()` | No |
+| 2 — import-shaped entry create | `source == 'app' && createdByLabel != 'Legacy'` gate | No |
+| 3 — protected fields on update | Dual update rule: member (strict) + admin (bypass) | No |
+
+The admin update bypass handles `writeAppCsvEntries` re-imports without requiring
+`writeAppCsvEntries` to be modified to include `createdByUserId`.
 
 ---
 
 ## 7. Rollback rules snippet
 
-**Before deploying: open Firebase Console → Firestore → Rules and copy the
-current rules to a safe text file. That is your rollback snippet.**
+**Before deploying: open Firebase Console → Firestore → Rules and save the
+current rules text to a local file. That is the authoritative rollback.**
 
-Canonical representation of loose private-rebuild rules (use your saved copy
-if it differs):
+Canonical loose private-rebuild rules (use your saved copy if it differs):
 
 ```
 rules_version = '2';
@@ -433,68 +422,67 @@ service cloud.firestore {
 }
 ```
 
-To roll back: paste into Firebase Console → Firestore → Rules → Publish.
-Effective within ~30 seconds.
+To roll back: paste into Console → Firestore → Rules → Publish. Live in ~30 s.
 
 ---
 
 ## 8. Firebase Console deployment instructions
 
-1. **Save current rules** — Console → Firestore → Rules → copy all text →
-   save locally. This is the rollback.
-2. **Copy §5 rules** — start with `rules_version = '2';`, end with closing `}`.
-3. Open Console → Firestore → Rules. Delete all existing text.
-4. Paste the §5 rules.
-5. Verify closing braces are balanced and the text matches §5 exactly.
-6. Click **Publish**. Rules are live within ~30 seconds.
-7. Run the manual test checklists (§9–§12) immediately.
-8. On any test failure → paste §7 rollback and re-publish immediately.
+1. Save current rules to a local file (rollback copy).
+2. Copy the §5 block (from `rules_version` to the final `}`).
+3. Console → Firestore → Rules → delete all existing text → paste §5.
+4. Verify balanced braces and that the text matches §5 exactly.
+5. Click **Publish**. Live in ~30 s.
+6. Run §9–§12 checklists immediately.
+7. On any failure → paste §7 rollback and re-publish immediately.
 
 ---
 
 ## 9. Owner manual test checklist
 
-Perform as a signed-in user with `role: 'owner'` AND `legacyImportAdmin: true`.
+Perform as `role: 'owner'` with `legacyImportAdmin: true`.
 
-- [ ] Ledger loads — entries visible for the active baby
-- [ ] Add entry (+ button) creates a new entry successfully
+- [ ] Ledger loads — entries visible for active baby
+- [ ] Add entry (+ Day / + Entry) writes successfully
 - [ ] Edit entry field (time, mL, diaper) saves successfully
-- [ ] Soft-delete an entry — entry gets `deleted: true`; not removed from Firestore
-- [ ] Weekly settings (bottle amount) saves and reloads correctly
-- [ ] Baby profile — baby details readable
-- [ ] Navigate to `/invite` — page loads, no permission error
-- [ ] Create an invite link — link generates, invite doc written to Firestore
-- [ ] Revoke an invite — invite `status` changes to `'revoked'`
-- [ ] Navigate to `/admin/legacy-import` — Import CSV page loads
-- [ ] Upload a valid Jojo export CSV matching active baby — preview appears
-- [ ] Confirm import phrase and click Import — entries write without error
-- [ ] Re-import the same CSV — idempotent, no new errors (existing docs overwritten)
-- [ ] Attempt to update own member doc with `legacyImportAdmin: true` via browser
-      console → should be blocked (permission-denied)
+- [ ] Soft-delete an entry — `deleted: true` in Firestore, not removed
+- [ ] Weekly settings (bottle amount) saves and reloads
+- [ ] Baby profile readable
+- [ ] `/invite` page loads
+- [ ] Create invite — invite doc written to Firestore
+- [ ] Revoke invite — `status: 'revoked'` in Firestore
+- [ ] `/admin/legacy-import` page loads
+- [ ] Upload matching-baby CSV — preview shown, no error
+- [ ] Complete import — entries written
+- [ ] Re-import same CSV — no error (idempotent)
+- [ ] Via browser console: try `updateDoc` on own member doc setting
+      `legacyImportAdmin: true` → expect permission-denied
 
 ---
 
 ## 10. Caregiver manual test checklist
 
-Perform as a signed-in user with `role: 'caregiver'` (no `legacyImportAdmin`).
+Perform as `role: 'caregiver'` (no `legacyImportAdmin`).
 
-- [ ] Ledger loads — entries visible for the active baby
-- [ ] Add entry creates a new entry successfully
+- [ ] Ledger loads — entries visible
+- [ ] Add entry writes successfully
 - [ ] Edit entry field saves successfully
-- [ ] Soft-delete an entry completes successfully
-- [ ] Weekly settings readable and editable (usual bottle amount)
-- [ ] Navigate to `/invite` — redirected away (app gate; owner-only)
-- [ ] Navigate to `/admin/legacy-import` — redirected away (app gate)
-- [ ] Attempting to create an entry with `source: 'legacy'` via browser console
-      → blocked (permission-denied)
-- [ ] Attempting to create own member doc without a valid `joinedViaInviteId`
-      → blocked (permission-denied)
-- [ ] Attempting to change `source` on an existing entry via `updateDoc`
-      → blocked (permission-denied)
-- [ ] Attempting to create or revoke an invite directly
-      → blocked (permission-denied)
-- [ ] Attempting to set `legacyImportAdmin: true` on own member doc
-      → blocked (permission-denied)
+- [ ] Soft-delete entry completes
+- [ ] Weekly settings readable and editable
+- [ ] `/invite` — redirected (app gate)
+- [ ] `/admin/legacy-import` — redirected (app gate)
+- [ ] Via browser console: try `setDoc` with `source: 'legacy'` →
+      expect permission-denied
+- [ ] Via browser console: try `setDoc` with `source: 'app'` and
+      `createdByLabel: 'Legacy'` → expect permission-denied
+- [ ] Via browser console: try `updateDoc` changing `source` on existing entry →
+      expect permission-denied
+- [ ] Via browser console: try `updateDoc` changing `createdByUserId` on existing
+      entry → expect permission-denied
+- [ ] Via browser console: try to create member doc for own UID without
+      `joinedViaInviteId` → expect permission-denied
+- [ ] Via browser console: try to create or revoke an invite → expect
+      permission-denied
 
 ---
 
@@ -502,25 +490,22 @@ Perform as a signed-in user with `role: 'caregiver'` (no `legacyImportAdmin`).
 
 Perform with a fresh account that has never joined the family.
 
-- [ ] Owner creates an invite link at `/invite`
-- [ ] Open invite link in a private/incognito window
-- [ ] Page shows sign-in/create-account form
-- [ ] Sign in or create a new account
-- [ ] After auth, page shows the "Join as caregiver" form
-- [ ] Fill in display label and submit
-  - [ ] `addMember` writes member doc with `joinedViaInviteId` = valid invite ID
-  - [ ] Firestore rules verify invite exists and is `status: 'active'` ✓
-  - [ ] Member doc is written successfully
-  - [ ] `acceptInvite` updates invite `status` to `'accepted'` ✓
-- [ ] Page shows "Joined! Redirecting…"
-- [ ] Sign in as owner and confirm new member appears in the family
-- [ ] New member's `role` is `'caregiver'`, `legacyImportAdmin` is absent/false
-- [ ] Try to accept the same invite link again (now `status: 'accepted'`) →
-      page shows "This invite has already been accepted." (app-side check)
-- [ ] Attempting to write a member doc with a fake/non-existent `joinedViaInviteId`
-      directly via browser console → blocked (permission-denied)
-- [ ] Attempting to write a member doc with `joinedViaInviteId` pointing to
-      a revoked invite → blocked (permission-denied)
+- [ ] Owner creates invite at `/invite`
+- [ ] Open invite link in incognito window
+- [ ] Page shows auth form (not a Firestore error)
+- [ ] Sign in or create account
+- [ ] After auth, "Join as caregiver" form appears
+- [ ] Fill in display label and submit:
+  - [ ] `addMember()` writes member doc with `joinedViaInviteId`
+  - [ ] Rules verify invite exists and `status == 'active'` → allowed
+  - [ ] `acceptInvite()` updates invite `status: 'accepted'` → allowed
+- [ ] Redirected to ledger, entries visible
+- [ ] Owner confirms new member appears with `role: 'caregiver'`
+- [ ] Try same link again (`status: 'accepted'`) → app shows "already accepted"
+- [ ] Via browser console: try to create member doc with fake `joinedViaInviteId`
+      → expect permission-denied
+- [ ] Via browser console: try to create member doc with revoked invite ID
+      → expect permission-denied
 
 ---
 
@@ -528,77 +513,72 @@ Perform with a fresh account that has never joined the family.
 
 Perform as owner with `legacyImportAdmin: true`.
 
-- [ ] Navigate to `/admin/legacy-import`
-- [ ] Upload a CSV with matching baby name → preview, no error
-- [ ] Upload a CSV with mismatched baby name → "CSV baby does not match" error,
-      import button disabled
-- [ ] Upload valid CSV → type confirmation phrase → Import button active
-- [ ] Complete import → result summary shows rows written
-- [ ] Re-import same CSV → completes without error (idempotent)
-- [ ] Check Firestore: entries exist at `families/{id}/babies/{id}/entries/{entryId}`
-- [ ] Entries with `source: 'legacy'` or `source: 'legacy-csv'` in the CSV
-      were written successfully (legacyImportAdmin allows any source)
-- [ ] Attempting same import as a caregiver (direct batch.set with source:'legacy')
-      → blocked (permission-denied)
+- [ ] Upload matching-baby CSV — preview shown
+- [ ] Upload mismatched-baby CSV — "CSV baby does not match" error (Phase 8A
+      gate), import button disabled
+- [ ] Complete first import — all entries written, sources preserved
+- [ ] Re-import same CSV — no errors, same entry IDs overwrite (idempotent)
+- [ ] Verify Firestore: entries with `source: 'legacy'` or `source: 'legacy-csv'`
+      written correctly
+- [ ] Entries from first import that had `source: 'app'` remain readable via
+      the ledger
+- [ ] As caregiver: attempt `batch.set()` with `source: 'legacy'` directly
+      → expect permission-denied
 
 ---
 
 ## 13. /feeds recommendation
 
-The app codebase contains no `/feeds` path references. The proposed rules in §5
-contain no feeds rule, so the feeds collection retains its existing rules.
+The `§5` rules contain no feeds rule. The feeds collection retains its current
+rules.
 
-**Option A — Old app still in use:** Deploy §5 as-is. No feeds rule is added. ✓ (Recommended)
+**Option A (recommended) — old app still in use:** Deploy `§5` as-is. ✓
 
-**Option B — Old app retired:** Add inside the `match /databases/{database}/documents`
-block in §5:
+**Option B — old app confirmed retired:** Add inside `§5`'s
+`match /databases/{database}/documents` block:
 ```
-    // /feeds — retired app; all access denied.
     match /feeds/{document=**} {
       allow read, write: if false;
     }
 ```
-Only apply after confirming the old app is fully offline.
+Apply only after confirming the old app is fully offline.
 
 ---
 
-## 14. Known risks and rollback trigger conditions
+## 14. Known risks and rollback triggers
 
 | Risk | Severity | Notes |
 |------|----------|-------|
-| `isMember`/`isOwner`/`isLegacyImportAdmin` each call `get()` on the member doc | Low | Firebase caches per-request; single backend read |
-| Member-create rule adds a second `get()` on the invite doc | Low | ~1–5 ms extra; acceptable for join flow (infrequent) |
-| Two users accepting the same invite simultaneously | Low | Both writes allowed if invite is still 'active' at evaluation time; acceptable for private-family use |
-| Caregivers can write individual entries with `source: 'app'` via direct calls | Low | Equivalent capability to normal app entry creation; UI gate prevents bulk import |
-| `createdByUserId`, `createdByLabel`, `createdAt` immutability enforced only at app layer | Low | Service layer `MUTABLE_FIELDS` prevents this in all normal flows |
-| Feeds break if Option B is applied prematurely | High | §5 contains no feeds rule; only triggered by manual addition of Option B |
+| `isMember`/`isOwner`/`isLegacyImportAdmin` call `get()` on member doc | Low | Firebase caches per request; ~1 backend read |
+| Member create calls `get()` on invite doc | Low | Infrequent operation; acceptable latency |
+| Two users simultaneously accepting same invite | Low | Both writes allowed if invite still 'active'; acceptable for private use |
+| User with display label "Legacy" cannot create normal app entries | Low | Extremely unlikely; relax rule if needed |
+| `writeAppCsvEntries` removes provenance fields on re-import of app entries | Low | Existing behaviour; admin is trusted; avoid re-import unless necessary |
+| Feeds break if Option B is applied prematurely | High | §5 has no feeds rule; only triggered by manual error |
 
 ### Rollback trigger conditions
 
-Roll back immediately (paste §7 and republish) if any of these occur:
+Roll back immediately (§7 → Publish) if:
 
-1. Ledger fails to load entries for any family member.
-2. Caregivers receive `permission-denied` creating or editing entries.
-3. Join-family flow returns `permission-denied` at any step.
-4. Import CSV returns `permission-denied` for a confirmed `legacyImportAdmin` user.
-5. Weekly settings fail to save for any member.
-6. Any feature that was working before deployment returns `permission-denied`.
-
-Rollback takes effect within ~30 seconds. No code change required.
+1. Ledger fails to load entries for any member.
+2. Any member receives permission-denied creating or editing entries.
+3. Join-family flow returns permission-denied at any step.
+4. Import CSV returns permission-denied for a confirmed `legacyImportAdmin` user.
+5. Weekly settings fail to save.
+6. Any previously working feature returns permission-denied.
 
 ---
 
 ## 15. Final verdict
 
-**Safe to deploy — with the revised §5 rules.**
+**Safe to deploy with the §5 rules.**
 
-Both blockers are resolved without any app or schema changes:
+All three blockers are resolved without any app or schema changes:
 
-- **Blocker 1:** Member create requires a `joinedViaInviteId` pointing to an
-  active invite in the same family. No schema change needed.
-- **Blocker 2:** Entry create requires `source == 'app'` for non-admin members.
-  Legacy/import sources require `legacyImportAdmin`. Source immutability is
-  enforced on update.
-
-Run the §9–§12 checklists immediately after deployment. Roll back via §7 if
-any failure occurs.
+- **Blocker 1:** Member create requires `joinedViaInviteId` pointing to an active
+  invite in the same family. `userId` field on the doc must match the auth UID.
+- **Blocker 2:** Entry create allows `source == 'app'` and `createdByLabel != 'Legacy'`
+  for members; any other combination requires `isLegacyImportAdmin`.
+- **Blocker 3:** Entry update has two paths — members get strict
+  `protectedFieldsUnchanged` enforcement; admins get an unrestricted bypass that
+  covers idempotent `batch.set()` re-imports from both import writers.
