@@ -102,3 +102,37 @@ describe('calculateStats — monthMl', () => {
     expect(calculateStats(entries, TODAY).monthMl).toBe(110)
   })
 })
+
+describe('calculateStats — source field does not affect counts', () => {
+  it('counts a source:legacy entry in todayMl', () => {
+    const entries = [makeEntry('e1', { amountMl: 150, source: 'legacy' })]
+    expect(calculateStats(entries, TODAY).todayMl).toBe(150)
+  })
+
+  it('counts a source:legacy entry in feedCount', () => {
+    const entries = [makeEntry('e1', { amountMl: 150, source: 'legacy' })]
+    expect(calculateStats(entries, TODAY).feedCount).toBe(1)
+  })
+
+  it('counts a source:app entry in todayMl', () => {
+    const entries = [makeEntry('e1', { amountMl: 90, source: 'app' })]
+    expect(calculateStats(entries, TODAY).todayMl).toBe(90)
+  })
+
+  it('excludes a deleted source:legacy entry', () => {
+    const entries = [makeEntry('e1', { amountMl: 150, source: 'legacy', deleted: true })]
+    const stats = calculateStats(entries, TODAY)
+    expect(stats.todayMl).toBe(0)
+    expect(stats.feedCount).toBe(0)
+  })
+
+  it('mixes legacy and app entries for correct totals', () => {
+    const entries = [
+      makeEntry('e1', { amountMl: 120, source: 'legacy' }),
+      makeEntry('e2', { amountMl: 80,  source: 'app' }),
+    ]
+    const stats = calculateStats(entries, TODAY)
+    expect(stats.todayMl).toBe(200)
+    expect(stats.feedCount).toBe(2)
+  })
+})

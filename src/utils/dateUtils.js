@@ -1,6 +1,10 @@
-/** Returns today's date as "YYYY-MM-DD". */
+/** Returns today's date as "YYYY-MM-DD" using local date parts (not UTC). */
 export function todayString() {
-  return new Date().toISOString().slice(0, 10)
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
 }
 
 /** Returns the current month key as "YYYY-MM". */
