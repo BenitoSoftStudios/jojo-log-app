@@ -245,7 +245,7 @@ import { useEntries }       from '@/entries/useEntries.js'
 import { useLedger }        from '@/entries/useLedger.js'
 import { useLedgerActions } from '@/entries/useLedgerActions.js'
 import { buildStartNextDayEntry } from '@/utils/entryUtils.js'
-import { todayString } from '@/utils/dateUtils.js'
+import { todayString, getTodayInTimezone, getCurrentHHMMInTimezone } from '@/utils/dateUtils.js'
 import { getWeekStartForDate } from '@/utils/weekUtils.js'
 import { generateCsv, downloadCsv } from '@/utils/csvExporter.js'
 import { useWeeklySettings } from '@/entries/useWeeklySettings.js'
@@ -253,7 +253,7 @@ import { useWeeklySettings } from '@/entries/useWeeklySettings.js'
 const router = useRouter()
 
 const { currentUser, signOut }                                                               = useAuth()
-const { familyId, currentMember, isOwner, isLegacyImportAdmin,
+const { familyId, currentMember, familyTimezone, isOwner, isLegacyImportAdmin,
         loading: familyLoading, loadFamily, clearFamily }                                     = useFamily()
 const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
         selectBaby, createBabyForFamily, clearBabies }                                       = useBabies()
@@ -296,12 +296,19 @@ onMounted(async () => {
 onUnmounted(() => clearInterval(_clockTimer))
 
 const headerDate = computed(() =>
-  _now.value.toLocaleDateString('en-CA', { weekday: 'short', day: 'numeric', month: 'short' })
+  _now.value.toLocaleDateString('en-CA', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    timeZone: familyTimezone.value,
+  })
 )
 const headerTime = computed(() => {
-  const h = String(_now.value.getHours()).padStart(2, '0')
-  const m = String(_now.value.getMinutes()).padStart(2, '0')
-  const s = String(_now.value.getSeconds()).padStart(2, '0')
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour12: false, timeZone: familyTimezone.value,
+  }).formatToParts(_now.value)
+  const h = parts.find(p => p.type === 'hour').value.padStart(2, '0')
+  const m = parts.find(p => p.type === 'minute').value.padStart(2, '0')
+  const s = parts.find(p => p.type === 'second').value.padStart(2, '0')
   return `${h}:${m}:${s}`
 })
 // ── CSV export ─────────────────────────────────────────────────────────────
@@ -375,12 +382,12 @@ watch(detailEntry, (e) => {
 
 // ── Date helpers ───────────────────────────────────────────────────────────
 
-// Stable today string (does not need to be reactive — sessions don't span midnight).
-const todayDate = todayString()
+// Reactive today in family timezone — recomputes when timezone setting changes.
+const todayDate = computed(() => getTodayInTimezone(familyTimezone.value))
 
 // Next calendar day after the most recent ledger date (used as default in picker).
 const nextDayDate = computed(() => {
-  if (!mostRecentDate.value) return todayDate
+  if (!mostRecentDate.value) return todayDate.value
   return buildStartNextDayEntry(mostRecentDate.value, activeBaby.value).date
 })
 
@@ -388,7 +395,7 @@ const nextDayDate = computed(() => {
 
 function handleOpenDayPicker() {
   const next = nextDayDate.value
-  pickedCustomDate.value = next <= todayDate ? next : todayDate
+  pickedCustomDate.value = next <= todayDate.value ? next : todayDate.value
   addDayDate.value       = ''
   addDayTime.value       = ''
   dayPickerOpen.value    = true
@@ -397,12 +404,9 @@ function handleOpenDayPicker() {
 function selectAddDay(date, isToday) {
   if (!date) return
   addDayDate.value = date
-  if (isToday) {
-    const now = new Date()
-    addDayTime.value = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
-  } else {
-    addDayTime.value = '00:00'
-  }
+  addDayTime.value = isToday
+    ? getCurrentHHMMInTimezone(familyTimezone.value)
+    : '00:00'
 }
 
 async function doCreateDay() {

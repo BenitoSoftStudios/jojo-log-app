@@ -31,8 +31,9 @@ export function isCompletedFeed(entry) {
  * - time is capped so it never crosses into the next calendar date
  * - amount = weeklySettings.usualBottleAmountMl if set, else null
  * - diaper, vitaminD, medication, tummyTime, notes all blank/default
+ * - timezone: IANA timezone string for the current-time fallback (no lastEntry)
  */
-export function buildNewEntryDefaults(lastEntry, baby, weeklySettings) {
+export function buildNewEntryDefaults(lastEntry, baby, weeklySettings, timezone = 'America/Toronto') {
   const intervalMinutes = baby?.defaultNextEntryIntervalMinutes ?? 180
 
   let prepopTime = null
@@ -44,8 +45,12 @@ export function buildNewEntryDefaults(lastEntry, baby, weeklySettings) {
     const newMm = String(clampedMinutes % 60).padStart(2, '0')
     prepopTime = `${newHh}:${newMm}`
   } else {
-    const now = new Date()
-    prepopTime = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: timezone, hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date())
+    const h = parts.find(p => p.type === 'hour').value.padStart(2, '0')
+    const m = parts.find(p => p.type === 'minute').value.padStart(2, '0')
+    prepopTime = `${h}:${m}`
   }
 
   return {

@@ -10,8 +10,9 @@ const _currentMember = ref(null)
 const _loading       = ref(false)
 const _error         = ref('')
 
-export const family        = readonly(_family)
-export const currentMember = readonly(_currentMember)
+export const family          = readonly(_family)
+export const currentMember   = readonly(_currentMember)
+export const familyTimezone  = computed(() => _family.value?.timezone ?? 'America/Toronto')
 
 export function useFamily() {
   const familyId              = computed(() => _family.value?.id ?? null)
@@ -53,6 +54,16 @@ export function useFamily() {
     }
   }
 
+  async function refreshFamily() {
+    const fId = _family.value?.id
+    if (!fId) return
+    try {
+      _family.value = await getFamily(fId)
+    } catch (e) {
+      console.error('[useFamily] refreshFamily failed | code:', e.code, '| message:', e.message, e)
+    }
+  }
+
   async function refreshCurrentMember() {
     const fId = _family.value?.id
     const uid = currentUser.value?.uid
@@ -74,12 +85,14 @@ export function useFamily() {
     family,
     currentMember,
     familyId,
+    familyTimezone,
     isOwner,
     isLegacyImportAdmin,
     hasDisplayLabel,
     loading: readonly(_loading),
     error:   readonly(_error),
     loadFamily,
+    refreshFamily,
     refreshCurrentMember,
     clearFamily
   }

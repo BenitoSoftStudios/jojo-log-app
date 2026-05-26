@@ -1,4 +1,4 @@
-<!-- Settings — display unit, timezone, other family preferences. -->
+<!-- Settings — family timezone (functional) and display unit (placeholder). -->
 <template>
   <AppLayout>
     <template #header>
@@ -7,38 +7,95 @@
     </template>
 
     <AppCard>
-      <h2 class="section-heading">Display unit</h2>
-      <div class="unit-options">
-        <label class="radio-option" :class="{ active: unit === 'ml' }">
-          <input v-model="unit" type="radio" value="ml" />
-          mL
-        </label>
-        <label class="radio-option" :class="{ active: unit === 'floz' }">
-          <input v-model="unit" type="radio" value="floz" />
-          fl oz
-        </label>
-      </div>
-      <p class="text-faint text-xs">
-        Amounts are always stored in mL. fl oz display coming later.
+      <h2 class="section-heading">Timezone</h2>
+      <p class="text-soft text-sm">
+        Controls "today" in the ledger header, stats, and new entry time defaults.
       </p>
+
+      <div class="tz-row">
+        <select
+          v-if="isOwner"
+          v-model="pendingTimezone"
+          class="tz-select"
+        >
+          <option v-for="tz in TIMEZONES" :key="tz.value" :value="tz.value">
+            {{ tz.label }}
+          </option>
+        </select>
+        <p v-else class="text-soft text-sm field-readonly">{{ displayTimezone }}</p>
+      </div>
+
+      <p v-if="tzError" class="field-error text-sm" role="alert">{{ tzError }}</p>
+      <p v-if="tzSuccess" class="field-success text-sm" role="status">Saved.</p>
+
+      <AppButton
+        v-if="isOwner"
+        class="save-btn"
+        :disabled="tzSaving || pendingTimezone === currentTimezone"
+        @click="saveTimezone"
+      >
+        {{ tzSaving ? 'Saving…' : 'Save timezone' }}
+      </AppButton>
     </AppCard>
 
     <AppCard>
-      <h2 class="section-heading">Timezone</h2>
-      <p class="text-soft text-sm">Eastern Time (America/Toronto)</p>
-      <p class="text-faint text-xs">
-        Timezone configuration coming later.
-      </p>
+      <h2 class="section-heading">Display unit</h2>
+      <p class="text-faint text-sm">fl oz display coming later. Amounts are stored in mL.</p>
     </AppCard>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed, watch } from 'vue'
 import AppLayout from '@/ui/AppLayout.vue'
 import AppCard from '@/ui/AppCard.vue'
+import AppButton from '@/ui/AppButton.vue'
+import { useFamily } from '@/families/useFamily.js'
+import { updateFamily } from '@/families/familyService.js'
 
-const unit = ref('ml')
+const TIMEZONES = [
+  { value: 'America/Toronto',     label: 'Eastern — Toronto / New York' },
+  { value: 'America/New_York',    label: 'Eastern — New York' },
+  { value: 'America/Chicago',     label: 'Central — Chicago' },
+  { value: 'America/Denver',      label: 'Mountain — Denver' },
+  { value: 'America/Los_Angeles', label: 'Pacific — Los Angeles' },
+  { value: 'America/Vancouver',   label: 'Pacific — Vancouver' },
+  { value: 'UTC',                 label: 'UTC' },
+]
+
+const { familyId, familyTimezone, isOwner, refreshFamily } = useFamily()
+
+const currentTimezone = computed(() => familyTimezone.value)
+const displayTimezone = computed(() => {
+  const match = TIMEZONES.find(t => t.value === currentTimezone.value)
+  return match ? match.label : currentTimezone.value
+})
+
+const pendingTimezone = ref(currentTimezone.value)
+const tzSaving        = ref(false)
+const tzError         = ref('')
+const tzSuccess       = ref(false)
+
+watch(currentTimezone, (tz) => { pendingTimezone.value = tz }, { immediate: true })
+
+async function saveTimezone() {
+  if (!familyId.value) return
+  tzSaving.value  = true
+  tzError.value   = ''
+  tzSuccess.value = false
+  try {
+    await updateFamily(familyId.value, { timezone: pendingTimezone.value })
+    await refreshFamily()
+    tzSuccess.value = true
+  } catch (e) {
+    console.error('[SettingsView] updateFamily (timezone) failed | code:', e.code, '| message:', e.message, e)
+    tzError.value = e?.code === 'permission-denied'
+      ? 'Only owners can change the timezone.'
+      : 'Save failed. Please try again.'
+  } finally {
+    tzSaving.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -61,32 +118,30 @@ const unit = ref('ml')
   margin-bottom: var(--space-3);
 }
 
-.unit-options {
-  display: flex;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
+.tz-row { margin: var(--space-3) 0; }
 
-.radio-option {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
+.tz-select {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
   border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-full);
-  cursor: pointer;
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-medium);
-  transition: all var(--duration-fast) var(--ease-out);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
+  font-family: var(--font-family);
+  background: var(--color-surface);
+  color: var(--color-text);
+  box-sizing: border-box;
 }
 
-.radio-option input { display: none; }
-
-.radio-option.active {
+.tz-select:focus {
+  outline: none;
   border-color: var(--color-mint);
-  background: var(--color-mint-soft);
-  color: var(--color-success);
 }
+
+.field-readonly { padding: var(--space-1) 0; }
+.field-error    { color: var(--color-error); margin-bottom: var(--space-2); }
+.field-success  { color: var(--color-mint);  margin-bottom: var(--space-2); }
+
+.save-btn { margin-top: var(--space-3); }
 
 :deep(.page-container) { display: flex; flex-direction: column; gap: var(--space-4); }
 </style>

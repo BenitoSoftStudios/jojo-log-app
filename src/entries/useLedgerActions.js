@@ -5,6 +5,7 @@ import { useLedger }  from '@/entries/useLedger.js'
 import { buildNewEntryDefaults } from '@/utils/entryUtils.js'
 import { useWeeklySettings }    from '@/entries/useWeeklySettings.js'
 import { getWeekStartForDate }  from '@/utils/weekUtils.js'
+import { familyTimezone }       from '@/families/useFamily.js'
 
 const { createEntry, updateEntry: _updateEntry, softDeleteEntry } = useEntries()
 const { activeBaby } = useBabies()
@@ -25,7 +26,7 @@ async function createDay(date, time) {
   await loadWeekSettings(weekStart)
   const weeklyAmt    = getBottleAmount(weekStart)
   const weekSettings = weeklyAmt !== null ? { usualBottleAmountMl: weeklyAmt } : null
-  const defaults     = buildNewEntryDefaults(null, activeBaby.value, weekSettings)
+  const defaults     = buildNewEntryDefaults(null, activeBaby.value, weekSettings, familyTimezone.value)
   try {
     await createEntry({ entryDate: date, ...defaults, entryTime: time ?? defaults.entryTime })
     openDay(date)
@@ -41,7 +42,7 @@ async function addEntry(day) {
   const weeklyAmt    = getBottleAmount(weekStart)
   const weekSettings = weeklyAmt !== null ? { usualBottleAmountMl: weeklyAmt } : null
   const lastEntry    = day.entries[day.entries.length - 1] ?? null
-  const defaults     = buildNewEntryDefaults(lastEntry, activeBaby.value, weekSettings)
+  const defaults     = buildNewEntryDefaults(lastEntry, activeBaby.value, weekSettings, familyTimezone.value)
   try {
     await createEntry({ entryDate: day.date, ...defaults })
   } catch (e) {

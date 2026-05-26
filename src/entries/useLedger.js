@@ -3,8 +3,9 @@ import { entries } from '@/entries/useEntries.js'
 import { groupEntries } from '@/utils/ledgerGrouper.js'
 import { applyLedgerSortOrder } from '@/utils/ledgerSort.js'
 import { calculateStats } from '@/utils/statsCalculator.js'
-import { todayString } from '@/utils/dateUtils.js'
+import { getTodayInTimezone } from '@/utils/dateUtils.js'
 import { weekOf } from '@/utils/weekUtils.js'
+import { familyTimezone } from '@/families/useFamily.js'
 
 // Module-level collapse state — persists across re-renders, resets on baby switch.
 const _openMonths   = ref(new Set())
@@ -22,7 +23,7 @@ let _initialized = false
 
 const grouped        = computed(() => groupEntries(entries.value))
 const displayGrouped = computed(() => applyLedgerSortOrder(grouped.value, _entrySortOrder.value))
-const stats          = computed(() => calculateStats(entries.value, todayString()))
+const stats          = computed(() => calculateStats(entries.value, getTodayInTimezone(familyTimezone.value)))
 
 const mostRecentDate = computed(() => {
   const months = grouped.value.months
@@ -38,7 +39,7 @@ watch(grouped, (g) => {
   const months = g.months
   if (!months.length) return
 
-  const todayKey    = todayString().slice(0, 7)
+  const todayKey    = getTodayInTimezone(familyTimezone.value).slice(0, 7)
   const targetMonth = months.find(m => m.monthKey === todayKey) ?? months[0]
 
   _openMonths.value = new Set([targetMonth.monthKey])

@@ -124,6 +124,15 @@
     </AppCard>
 
     <AppCard>
+      <h2 class="section-heading">Timezone</h2>
+      <p class="text-soft text-sm">
+        The family timezone (set in Settings) controls what "today" means:
+        the header date and time, daily stats, and the default time on new entries.
+        Stored entries are not changed when the timezone is updated.
+      </p>
+    </AppCard>
+
+    <AppCard>
       <h2 class="section-heading">Privacy note</h2>
       <p class="text-soft text-sm">
         Avoid entering health card numbers, addresses, or sensitive medical

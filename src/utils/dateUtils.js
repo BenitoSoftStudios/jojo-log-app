@@ -7,6 +7,29 @@ export function todayString() {
   return `${y}-${m}-${day}`
 }
 
+/** Returns today's date as "YYYY-MM-DD" in the given IANA timezone. */
+export function getTodayInTimezone(timezone, now = new Date()) {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    year:  'numeric',
+    month: '2-digit',
+    day:   '2-digit',
+  }).format(now)
+}
+
+/** Returns the current time as "HH:MM" in the given IANA timezone. */
+export function getCurrentHHMMInTimezone(timezone, now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-CA', {
+    timeZone: timezone,
+    hour:   '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now)
+  const h = parts.find(p => p.type === 'hour').value.padStart(2, '0')
+  const m = parts.find(p => p.type === 'minute').value.padStart(2, '0')
+  return `${h}:${m}`
+}
+
 /** Returns the current month key as "YYYY-MM". */
 export function currentMonthKey() {
   return todayString().slice(0, 7)
