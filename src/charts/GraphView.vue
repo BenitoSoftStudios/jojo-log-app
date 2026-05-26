@@ -1,5 +1,4 @@
-<!-- Graph View — monthly daily bar chart + year-by-month chart.
-     Phase 2: layout scaffold. Phase 7 implements volumeChartService + SVG charts. -->
+<!-- Graph View — placeholder. Charts coming later. -->
 <template>
   <AppLayout>
     <template #header>
@@ -10,14 +9,14 @@
     <AppCard>
       <h2 class="chart-heading">Daily volume — this month</h2>
       <div class="chart-placeholder">
-        <p class="text-faint text-sm">Monthly daily bar chart — Phase 7</p>
+        <p class="text-faint text-sm">Coming later.</p>
       </div>
     </AppCard>
 
     <AppCard>
       <h2 class="chart-heading">Monthly volume — this year</h2>
       <div class="chart-placeholder">
-        <p class="text-faint text-sm">Year-by-month chart — Phase 7</p>
+        <p class="text-faint text-sm">Coming later.</p>
       </div>
     </AppCard>
   </AppLayout>

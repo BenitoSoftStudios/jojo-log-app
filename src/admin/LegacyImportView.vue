@@ -59,6 +59,14 @@
               <span class="preview-list__label text-faint">Valid rows</span>
               <span>{{ preview.validRows }}</span>
             </li>
+            <li v-if="dupCheck" class="preview-list__row">
+              <span class="preview-list__label text-faint">New entries</span>
+              <span>{{ dupCheck.newCount }}</span>
+            </li>
+            <li v-if="dupCheck && dupCheck.overlapCount > 0" class="preview-list__row">
+              <span class="preview-list__label text-faint">Already in log</span>
+              <span class="text-warn">{{ dupCheck.overlapCount }}</span>
+            </li>
             <li v-if="preview.skippedRows > 0" class="preview-list__row">
               <span class="preview-list__label text-faint">Skipped (blank ID)</span>
               <span class="text-warn">{{ preview.skippedRows }}</span>
@@ -147,8 +155,9 @@ import { useRouter } from 'vue-router'
 import AppLayout from '@/ui/AppLayout.vue'
 import { useFamily } from '@/families/useFamily.js'
 import { useBabies } from '@/babies/useBabies.js'
-import { parseAppCsv }       from '@/utils/appCsvImporter.js'
-import { writeAppCsvEntries } from '@/admin/useLegacyImportWriter.js'
+import { parseAppCsv, checkForExistingIds } from '@/utils/appCsvImporter.js'
+import { writeAppCsvEntries }               from '@/admin/useLegacyImportWriter.js'
+import { entries, deletedEntries }          from '@/entries/useEntries.js'
 
 const router = useRouter()
 
@@ -159,10 +168,11 @@ onMounted(() => {
   if (!isLegacyImportAdmin.value) router.replace('/')
 })
 
-const parseError  = ref('')
-const parseErrors = ref([])
-const preview     = ref(null)
+const parseError    = ref('')
+const parseErrors   = ref([])
+const preview       = ref(null)
 const parsedEntries = ref([])
+const dupCheck      = ref(null)
 const confirmPhrase = ref('')
 
 const importing      = ref(false)
@@ -185,6 +195,7 @@ async function handleFile(event) {
   parseErrors.value    = []
   preview.value        = null
   parsedEntries.value  = []
+  dupCheck.value       = null
   confirmPhrase.value  = ''
   importResult.value   = null
   importError.value    = ''
@@ -206,6 +217,20 @@ async function handleFile(event) {
       const expectedName = activeBaby.value?.nickname ?? ''
       if (hasBlankBabyName || babyNames.length !== 1 || babyNames[0] !== expectedName) {
         parseErrors.value.push('CSV baby does not match the active baby.')
+      }
+
+      // Check for entry IDs already in Firestore (active + deleted) for this baby.
+      const existingIds = new Set([
+        ...entries.value.map(e => e.id),
+        ...deletedEntries.value.map(e => e.id),
+      ])
+      const check = checkForExistingIds(result.entries, existingIds)
+      dupCheck.value = check
+      if (check.overlapCount > 0) {
+        const sample = check.overlapIds.slice(0, 3).join(', ')
+        parseErrors.value.push(
+          `${check.overlapCount} entries already exist in this baby's log: ${sample}${check.overlapCount > 3 ? '…' : ''} — import blocked. Overwrite support coming later.`
+        )
       }
     }
   } catch (e) {

@@ -3,6 +3,7 @@
 // (useEntries) can access currentMember for provenance without prop-drilling.
 import { ref, computed, readonly } from 'vue'
 import { getFamily, getMember, findFamilyIdForUser } from './familyService.js'
+import { currentUser } from '@/auth/useAuth.js'
 
 const _family        = ref(null)
 const _currentMember = ref(null)
@@ -52,6 +53,17 @@ export function useFamily() {
     }
   }
 
+  async function refreshCurrentMember() {
+    const fId = _family.value?.id
+    const uid = currentUser.value?.uid
+    if (!fId || !uid) return
+    try {
+      _currentMember.value = await getMember(fId, uid)
+    } catch (e) {
+      console.error('[useFamily] refreshCurrentMember failed | code:', e.code, '| message:', e.message, e)
+    }
+  }
+
   function clearFamily() {
     _family.value        = null
     _currentMember.value = null
@@ -68,6 +80,7 @@ export function useFamily() {
     loading: readonly(_loading),
     error:   readonly(_error),
     loadFamily,
+    refreshCurrentMember,
     clearFamily
   }
 }

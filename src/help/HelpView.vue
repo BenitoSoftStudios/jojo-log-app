@@ -1,4 +1,4 @@
-<!-- Help / Legend — explains symbols, New Entry, Start Next Day, sync status.
+<!-- Help / Legend — explains symbols, + Day, + Add Entry, indicators, sync status.
      Available without auth (meta.requiresAuth: false). -->
 <template>
   <AppLayout>
@@ -45,6 +45,14 @@
           <dd class="legend-val">Medication given (details in notes)</dd>
         </div>
         <div class="legend-row">
+          <dt class="legend-key">★</dt>
+          <dd class="legend-val">Tummy time — tap to cycle the count up. Tap again to reset.</dd>
+        </div>
+        <div class="legend-row">
+          <dt class="legend-key">Notes</dt>
+          <dd class="legend-val">Tap the notes indicator to open the entry detail and read the full note.</dd>
+        </div>
+        <div class="legend-row">
           <dt class="legend-key incomplete-dot-demo" aria-hidden="true"></dt>
           <dd class="legend-val">Amber dot — incomplete entry (amount or diaper is blank)</dd>
         </div>
@@ -55,18 +63,17 @@
       <h2 class="section-heading">Adding entries</h2>
       <dl class="legend-list">
         <div class="legend-row align-top">
-          <dt class="legend-key">New Entry</dt>
+          <dt class="legend-key">+ Day</dt>
           <dd class="legend-val">
-            Adds an entry to the current open day. The time is prepopulated
-            to the last entry time plus 3 hours (or the baby's set interval).
-            It never automatically moves to the next day.
+            Opens a date and time picker. Choose today, tomorrow, or any past date,
+            then set the time for the first entry on that day.
           </dd>
         </div>
         <div class="legend-row align-top">
-          <dt class="legend-key">Start Next Day</dt>
+          <dt class="legend-key">+ Add Entry</dt>
           <dd class="legend-val">
-            Creates the next calendar date and one starter entry.
-            Use this when the next feed belongs to tomorrow.
+            Adds another entry to the current open day. The time is pre-filled
+            to the last entry time plus the usual interval.
           </dd>
         </div>
       </dl>

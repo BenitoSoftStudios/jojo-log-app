@@ -213,6 +213,7 @@
         <router-link v-if="isLegacyImportAdmin" class="menu-item" to="/admin/legacy-import" @click="menuOpen = false">Import CSV</router-link>
         <p v-if="isOwner && exportError" class="menu-export-error text-xs">{{ exportError }}</p>
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
+        <router-link class="menu-item" to="/profile"           @click="menuOpen = false">My Profile</router-link>
         <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
         <hr class="menu-divider" />
         <!-- Entry sort order preference -->

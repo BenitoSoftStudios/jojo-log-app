@@ -197,6 +197,27 @@ export function parseAppCsv(text) {
   return { entries, errors, preview }
 }
 
+/**
+ * Check which CSV entry IDs already exist in the destination baby.
+ * Call this after parseAppCsv(), passing a Set of IDs already in Firestore
+ * (include both active and deleted entries so setDoc overwrites are caught).
+ *
+ * @param {Array}  csvEntries    - from parseAppCsv().entries
+ * @param {Set}    existingIdSet - all Firestore entry IDs for the active baby
+ * @returns {{ overlapIds: string[], overlapCount: number, newCount: number }}
+ */
+export function checkForExistingIds(csvEntries, existingIdSet) {
+  const overlapIds = []
+  for (const e of csvEntries) {
+    if (existingIdSet.has(e.id)) overlapIds.push(e.id)
+  }
+  return {
+    overlapIds,
+    overlapCount: overlapIds.length,
+    newCount: csvEntries.length - overlapIds.length,
+  }
+}
+
 function buildPreview(entries, skippedRows, babyNames, hasBlankBabyName) {
   let totalMl      = 0
   let deletedCount = 0

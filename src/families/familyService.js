@@ -79,6 +79,11 @@ export async function createInvite(familyId, { createdByUserId, createdByLabel, 
   return { inviteId, code }
 }
 
+export async function listMembers(familyId) {
+  const snap = await getDocs(collection(db, 'families', familyId, 'members'))
+  return snap.docs.map(d => d.data())
+}
+
 export async function getInvite(familyId, inviteId) {
   const snap = await getDoc(doc(db, 'families', familyId, 'invites', inviteId))
   return snap.exists() ? snap.data() : null

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { parseAppCsv } from '@/utils/appCsvImporter.js'
+import { parseAppCsv, checkForExistingIds } from '@/utils/appCsvImporter.js'
 
 const HEADER = 'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl'
 
@@ -296,5 +296,46 @@ describe('parseAppCsv — baby name tracking', () => {
       makeRow({ entryId: 'e1', babyNickname: 'Jojo' }),
     ))
     expect(preview.babyNames).toEqual(['Jojo'])
+  })
+})
+
+// ── checkForExistingIds ─────────────────────────────────────────────────────
+
+describe('checkForExistingIds', () => {
+  function makeEntries(ids) {
+    return ids.map(id => ({ id }))
+  }
+
+  it('returns all new when no overlap', () => {
+    const result = checkForExistingIds(makeEntries(['a', 'b']), new Set(['c', 'd']))
+    expect(result.overlapCount).toBe(0)
+    expect(result.overlapIds).toEqual([])
+    expect(result.newCount).toBe(2)
+  })
+
+  it('detects full overlap', () => {
+    const result = checkForExistingIds(makeEntries(['a', 'b']), new Set(['a', 'b']))
+    expect(result.overlapCount).toBe(2)
+    expect(result.overlapIds).toEqual(['a', 'b'])
+    expect(result.newCount).toBe(0)
+  })
+
+  it('detects partial overlap', () => {
+    const result = checkForExistingIds(makeEntries(['a', 'b', 'c']), new Set(['b']))
+    expect(result.overlapCount).toBe(1)
+    expect(result.overlapIds).toEqual(['b'])
+    expect(result.newCount).toBe(2)
+  })
+
+  it('returns zero counts for empty csvEntries', () => {
+    const result = checkForExistingIds([], new Set(['a', 'b']))
+    expect(result.overlapCount).toBe(0)
+    expect(result.newCount).toBe(0)
+  })
+
+  it('returns all new when existingIdSet is empty', () => {
+    const result = checkForExistingIds(makeEntries(['x', 'y']), new Set())
+    expect(result.overlapCount).toBe(0)
+    expect(result.newCount).toBe(2)
   })
 })

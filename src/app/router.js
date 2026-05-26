@@ -10,6 +10,7 @@ import RecentlyDeletedView   from '@/entries/RecentlyDeletedView.vue'
 import ManageCaregiversView  from '@/families/ManageCaregiversView.vue'
 import BabySettingsView      from '@/babies/BabySettingsView.vue'
 import SettingsView          from '@/settings/SettingsView.vue'
+import ProfileView           from '@/settings/ProfileView.vue'
 import HelpView              from '@/help/HelpView.vue'
 
 // Imported directly (not via useAuth()) so the guard can use them outside component setup
@@ -69,6 +70,12 @@ const routes = [
     path: '/settings',
     name: 'settings',
     component: SettingsView,
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: ProfileView,
     meta: { requiresAuth: true }
   },
   {

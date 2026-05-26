@@ -1,5 +1,4 @@
-<!-- Settings — display unit, timezone, other family preferences.
-     Phase 2: layout scaffold. Phase 7 wires familyService.updateFamily. -->
+<!-- Settings — display unit, timezone, other family preferences. -->
 <template>
   <AppLayout>
     <template #header>
@@ -20,8 +19,7 @@
         </label>
       </div>
       <p class="text-faint text-xs">
-        Amounts are always stored in mL. This changes how they are displayed.
-        fl oz display wires in Phase 7.
+        Amounts are always stored in mL. fl oz display coming later.
       </p>
     </AppCard>
 
@@ -29,7 +27,7 @@
       <h2 class="section-heading">Timezone</h2>
       <p class="text-soft text-sm">Eastern Time (America/Toronto)</p>
       <p class="text-faint text-xs">
-        Timezone configuration wires in Phase 7.
+        Timezone configuration coming later.
       </p>
     </AppCard>
   </AppLayout>
@@ -40,7 +38,6 @@ import { ref } from 'vue'
 import AppLayout from '@/ui/AppLayout.vue'
 import AppCard from '@/ui/AppCard.vue'
 
-// Phase 2 local placeholder — replaced by useFamily.family.unitPreference in Phase 7
 const unit = ref('ml')
 </script>
 
