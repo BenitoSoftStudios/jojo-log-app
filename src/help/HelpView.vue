@@ -116,6 +116,7 @@
       <p class="text-soft text-sm">
         Usual bottle is an optional parent-entered reminder for the week.
         It does not calculate, recommend, or replace medical feeding guidance.
+        It does not auto-fill new entries — amount fields always start blank.
       </p>
       <p class="text-soft text-sm">
         Tap <strong>Edit</strong> on any week row to set or clear the value.

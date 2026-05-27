@@ -2,51 +2,59 @@
      Two paths:
      1. New user with no family → stores pending label, redirects to /family-setup.
      2. Existing member with no label → updates member doc directly, redirects to /.
-     Either way, a display label is required before the user can reach the Care Ledger. -->
+     Either way, a display label is required before the user can reach the Care Ledger.
+     Waits for family/member state to resolve before rendering the form so that
+     existing members are never treated as new users and routed to /family-setup. -->
 <template>
   <div class="setup-page">
     <div class="setup-box">
       <h1 class="setup-title">Your display label</h1>
-      <p class="setup-desc text-soft text-sm">
-        Your display label appears on every entry you log. It helps the household
-        know who did what at a glance. Required before you can start logging.
-      </p>
 
-      <form class="setup-form" @submit.prevent="handleSubmit">
-        <div class="field-group">
-          <label class="field-label" for="displayLabel">Display label</label>
-          <input
-            id="displayLabel"
-            v-model="displayLabel"
-            type="text"
-            class="field-input"
-            placeholder="e.g. Mum, Dad, Nan, JS"
-            maxlength="20"
-            required
-            autofocus
-          />
-          <p class="field-hint text-faint text-xs">Short name or initials shown on care entries.</p>
-        </div>
+      <!-- Wait for family membership check before showing the form -->
+      <p v-if="checking" class="text-soft text-sm">Loading…</p>
 
-        <div class="field-group">
-          <label class="field-label" for="initials">Initials (optional)</label>
-          <input
-            id="initials"
-            v-model="initials"
-            type="text"
-            class="field-input"
-            placeholder="e.g. JS"
-            maxlength="4"
-          />
-          <p class="field-hint text-faint text-xs">Used in tight spaces where the full label doesn't fit.</p>
-        </div>
+      <template v-else>
+        <p class="setup-desc text-soft text-sm">
+          Your display label appears on every entry you log. It helps the household
+          know who did what at a glance. Required before you can start logging.
+        </p>
 
-        <p v-if="error" class="field-error" role="alert">{{ error }}</p>
+        <form class="setup-form" @submit.prevent="handleSubmit">
+          <div class="field-group">
+            <label class="field-label" for="displayLabel">Display label</label>
+            <input
+              id="displayLabel"
+              v-model="displayLabel"
+              type="text"
+              class="field-input"
+              placeholder="e.g. Mum, Dad, Nan, JS"
+              maxlength="20"
+              required
+              autofocus
+            />
+            <p class="field-hint text-faint text-xs">Short name or initials shown on care entries.</p>
+          </div>
 
-        <AppButton type="submit" :full="true" :disabled="loading || !displayLabel.trim()">
-          {{ loading ? 'Saving…' : 'Continue' }}
-        </AppButton>
-      </form>
+          <div class="field-group">
+            <label class="field-label" for="initials">Initials (optional)</label>
+            <input
+              id="initials"
+              v-model="initials"
+              type="text"
+              class="field-input"
+              placeholder="e.g. JS"
+              maxlength="4"
+            />
+            <p class="field-hint text-faint text-xs">Used in tight spaces where the full label doesn't fit.</p>
+          </div>
+
+          <p v-if="error" class="field-error" role="alert">{{ error }}</p>
+
+          <AppButton type="submit" :full="true" :disabled="loading || !displayLabel.trim()">
+            {{ loading ? 'Saving…' : 'Continue' }}
+          </AppButton>
+        </form>
+      </template>
     </div>
   </div>
 </template>
@@ -62,22 +70,25 @@ import { pendingLabel, pendingInitials } from '@/auth/pendingSetup.js'
 
 const router = useRouter()
 const { currentUser } = useAuth()
-const { familyId, hasDisplayLabel, loadFamily } = useFamily()
+const { familyId, hasDisplayLabel, loadFamily, error: familyError } = useFamily()
 
 const displayLabel = ref('')
 const initials     = ref('')
 const loading      = ref(false)
 const error        = ref('')
+const checking     = ref(true)
 
 onMounted(async () => {
-  // If family context not yet loaded, try to load it
+  // Load family/member state if not already in module-level singleton
   if (!familyId.value && currentUser.value) {
     await loadFamily(currentUser.value.uid)
   }
-  // If user already has a display label, they shouldn't be here
+  // If the member already has a display label they belong on the ledger, not here
   if (hasDisplayLabel.value) {
     router.replace('/')
+    return
   }
+  checking.value = false
 })
 
 async function handleSubmit() {
@@ -88,14 +99,18 @@ async function handleSubmit() {
 
   try {
     if (familyId.value && currentUser.value) {
-      // Existing family member (future Phase 8 caregiver path, or re-entry)
+      // Existing family member — update their display label in place
       await updateMember(familyId.value, currentUser.value.uid, {
         displayLabel: label,
         initials: inits
       })
       await router.push('/')
+    } else if (familyError.value) {
+      // loadFamily threw — we cannot confirm the user has no family.
+      // Block the new-family path to prevent creating a duplicate family.
+      error.value = 'Could not verify your account. Please reload the page and try again.'
     } else {
-      // New user — store pending values and proceed to family setup
+      // No family found (confirmed, no error) → genuinely new user
       pendingLabel.value    = label
       pendingInitials.value = inits
       await router.push('/family-setup')

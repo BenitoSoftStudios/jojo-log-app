@@ -29,7 +29,7 @@ export function isCompletedFeed(entry) {
  * Rules:
  * - time = lastEntry.entryTime + baby.defaultNextEntryIntervalMinutes
  * - time is capped so it never crosses into the next calendar date
- * - amount = weeklySettings.usualBottleAmountMl if set, else null
+ * - amount = null (not pre-filled; usual bottle is a display reminder only)
  * - diaper, vitaminD, medication, tummyTime, notes all blank/default
  * - timezone: IANA timezone string for the current-time fallback (no lastEntry)
  */
@@ -55,7 +55,7 @@ export function buildNewEntryDefaults(lastEntry, baby, weeklySettings, timezone 
 
   return {
     entryTime:      prepopTime,
-    amountMl:       weeklySettings?.usualBottleAmountMl ?? null,
+    amountMl:       null,
     diaper:         null,
     vitaminD:       false,
     medication:     false,
