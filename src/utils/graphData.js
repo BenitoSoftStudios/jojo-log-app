@@ -79,3 +79,33 @@ export function sevenDayRollingAvg(dailyStats) {
     return Math.round(win.reduce((s, d) => s + d.totalMl, 0) / win.length)
   })
 }
+
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+/**
+ * Aggregate daily stats into calendar-month buckets.
+ * Used for "Since birth" view when there are more than 30 days of data.
+ *
+ * @param {Array<{date, totalMl, feedCount, tummyCount}>} dailyStats sorted oldest-first
+ * @returns {Array<{monthKey, label, totalMl, feedCount, tummyCount}>} sorted oldest-first
+ */
+export function groupByMonth(dailyStats) {
+  const months = {}
+  for (const d of dailyStats) {
+    const key = d.date.slice(0, 7)  // 'YYYY-MM'
+    if (!months[key]) {
+      const [y, m] = key.split('-')
+      months[key] = {
+        monthKey:   key,
+        label:      `${MONTHS[Number(m) - 1]} ${y}`,
+        totalMl:    0,
+        feedCount:  0,
+        tummyCount: 0,
+      }
+    }
+    months[key].totalMl    += d.totalMl
+    months[key].feedCount  += d.feedCount
+    months[key].tummyCount += d.tummyCount
+  }
+  return Object.values(months).sort((a, b) => a.monthKey.localeCompare(b.monthKey))
+}

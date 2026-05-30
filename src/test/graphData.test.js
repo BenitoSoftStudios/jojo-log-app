@@ -4,6 +4,7 @@ import {
   buildDateRange,
   computeDailyStats,
   sevenDayRollingAvg,
+  groupByMonth,
 } from '@/utils/graphData.js'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -212,5 +213,65 @@ describe('sevenDayRollingAvg', () => {
     const result = sevenDayRollingAvg(stats)
     // At index 7: window = indices 1..7 → 7 × 100 = 700 / 7 = 100
     expect(result[7]).toBe(100)
+  })
+})
+
+// ── groupByMonth ──────────────────────────────────────────────────────────────
+
+describe('groupByMonth', () => {
+  it('returns empty array for empty input', () => {
+    expect(groupByMonth([])).toEqual([])
+  })
+
+  it('groups multiple days in the same month into one row', () => {
+    const daily = [
+      { date: '2026-01-15', totalMl: 500, feedCount: 4, tummyCount: 1 },
+      { date: '2026-01-20', totalMl: 450, feedCount: 3, tummyCount: 0 },
+    ]
+    const result = groupByMonth(daily)
+    expect(result).toHaveLength(1)
+    expect(result[0].monthKey).toBe('2026-01')
+    expect(result[0].totalMl).toBe(950)
+    expect(result[0].feedCount).toBe(7)
+    expect(result[0].tummyCount).toBe(1)
+  })
+
+  it('produces separate rows for different months', () => {
+    const daily = [
+      { date: '2026-01-15', totalMl: 500, feedCount: 4, tummyCount: 0 },
+      { date: '2026-02-01', totalMl: 600, feedCount: 5, tummyCount: 2 },
+    ]
+    const result = groupByMonth(daily)
+    expect(result).toHaveLength(2)
+    expect(result[0].monthKey).toBe('2026-01')
+    expect(result[1].monthKey).toBe('2026-02')
+    expect(result[1].totalMl).toBe(600)
+  })
+
+  it('sorts months oldest-first', () => {
+    const daily = [
+      { date: '2026-03-01', totalMl: 100, feedCount: 1, tummyCount: 0 },
+      { date: '2026-01-01', totalMl: 200, feedCount: 2, tummyCount: 0 },
+    ]
+    const result = groupByMonth(daily)
+    expect(result[0].monthKey).toBe('2026-01')
+    expect(result[1].monthKey).toBe('2026-03')
+  })
+
+  it('labels months with abbreviated name and year', () => {
+    const daily = [{ date: '2026-05-15', totalMl: 300, feedCount: 3, tummyCount: 0 }]
+    const result = groupByMonth(daily)
+    expect(result[0].label).toBe('May 2026')
+  })
+
+  it('zero-fill months carry through correctly', () => {
+    const daily = [
+      { date: '2026-04-10', totalMl: 0, feedCount: 0, tummyCount: 0 },
+      { date: '2026-04-11', totalMl: 0, feedCount: 0, tummyCount: 0 },
+    ]
+    const result = groupByMonth(daily)
+    expect(result).toHaveLength(1)
+    expect(result[0].totalMl).toBe(0)
+    expect(result[0].feedCount).toBe(0)
   })
 })
