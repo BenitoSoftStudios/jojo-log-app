@@ -287,6 +287,11 @@ describe('niceMax — ml type', () => {
   it('returns 1000 for 840 mL', () => { expect(niceMax(840, 'ml')).toBe(1000) })
   it('returns 25000 for 21858 mL', () => { expect(niceMax(21858, 'ml')).toBe(25000) })
   it('returns 30000 for 28000 mL', () => { expect(niceMax(28000, 'ml')).toBe(30000) })
+  // large monthly totals (> 30000 mL) — 5k steps under 100k, 10k steps at or above 100k
+  it('returns 35000 for 32000 mL', () => { expect(niceMax(32000, 'ml')).toBe(35000) })
+  it('returns 100000 for 99001 mL', () => { expect(niceMax(99001, 'ml')).toBe(100000) })
+  it('returns 110000 for 103000 mL', () => { expect(niceMax(103000, 'ml')).toBe(110000) })
+  it('returns 100000 for 100000 mL exactly', () => { expect(niceMax(100000, 'ml')).toBe(100000) })
 })
 
 describe('niceMax — count type', () => {

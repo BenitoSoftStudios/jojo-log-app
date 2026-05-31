@@ -134,6 +134,20 @@
     </AppCard>
 
     <AppCard>
+      <h2 class="section-heading">Baby profile</h2>
+      <p class="text-soft text-sm">
+        Open <strong>Baby Settings</strong> (via the menu) to edit the baby's nickname, birthdate, and animal avatar.
+        The animal avatar appears in the ledger header and the baby switcher for quick recognition.
+      </p>
+      <ul class="help-list text-sm">
+        <li>Use a nickname rather than the baby's real name for privacy.</li>
+        <li>A nearby date works just as well as an exact birthday.</li>
+        <li>Birthdate is optional. Only the <strong>Since birth</strong> Trends range needs it.</li>
+        <li>Caregivers can view baby details but cannot edit them.</li>
+      </ul>
+    </AppCard>
+
+    <AppCard>
       <h2 class="section-heading">Privacy note</h2>
       <p class="text-soft text-sm">
         Avoid entering health card numbers, addresses, or sensitive medical

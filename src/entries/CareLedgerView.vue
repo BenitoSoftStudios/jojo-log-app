@@ -14,7 +14,11 @@
             @select="selectBaby"
           />
           <span v-else class="ledger-header__baby">
-            {{ activeBaby ? '🦆 ' + activeBaby.nickname : 'No active baby' }}
+            <template v-if="activeBaby">
+              <AnimalAvatar :animal-key="activeBaby.animalAvatar" :size="24" class="ledger-avatar" />
+              {{ activeBaby.nickname }}
+            </template>
+            <template v-else>No active baby</template>
           </span>
           <div class="ledger-header__actions">
             <button v-if="activeBaby" class="header-day-btn" type="button" @click="handleOpenDayPicker">+ Day</button>
@@ -238,6 +242,7 @@ import SummaryChips     from '@/entries/SummaryChips.vue'
 import CareMonth        from '@/entries/CareMonth.vue'
 import EntryDetailSheet from '@/entries/EntryDetailSheet.vue'
 import BabySwitcher     from '@/babies/BabySwitcher.vue'
+import AnimalAvatar     from '@/animals/AnimalAvatar.vue'
 import { useAuth }          from '@/auth/useAuth.js'
 import { useFamily }        from '@/families/useFamily.js'
 import { useBabies }        from '@/babies/useBabies.js'
@@ -467,7 +472,12 @@ async function handleSignOut() {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
 }
+
+.ledger-avatar { flex-shrink: 0; }
 
 .ledger-header__actions {
   display: flex;

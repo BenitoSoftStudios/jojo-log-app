@@ -94,7 +94,9 @@ export function niceMax(rawMax, type) {
   if (rawMax <= 0) return type === 'ml' ? 500 : 5
   if (type === 'ml') {
     const found = ML_STEPS.find(s => s >= rawMax)
-    return found ?? Math.ceil(rawMax / 10000) * 10000
+    if (found) return found
+    if (rawMax < 100000) return Math.ceil(rawMax / 5000) * 5000
+    return Math.ceil(rawMax / 10000) * 10000
   }
   // counts (feeds, tummy sessions)
   if (rawMax <= 4)  return rawMax + 1
