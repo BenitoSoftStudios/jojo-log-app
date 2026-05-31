@@ -25,20 +25,37 @@
   position: sticky;
   top: 0;
   z-index: 100;
-  height: var(--header-height);
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
+  /* Push content below browser chrome / notch */
+  padding-top: env(safe-area-inset-top, 0);
 }
 
+/* Content area sits in fixed-height band below safe area */
 .header-inner {
   display: flex;
   align-items: center;
-  height: 100%;
+  height: var(--header-height);
   gap: var(--space-3);
+}
+
+/* Standardize back-button tap target across all secondary pages.
+   Each page styles its own .back-btn colours; this adds the 44×44 minimum. */
+:deep(.back-btn) {
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 
 .app-main {
   flex: 1;
-  padding: var(--space-4) 0 var(--space-12);
+  padding-top: var(--space-4);
+  /* Keep generous bottom space and clear the iOS home indicator */
+  padding-bottom: calc(var(--space-12) + env(safe-area-inset-bottom, 0));
 }
 </style>

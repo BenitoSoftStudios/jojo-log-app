@@ -1,10 +1,9 @@
 <!-- Inline-editable entry row. Each field saves immediately on change/blur.
-     Layout: two lines + optional tummy time form.
+     Layout: two lines — no inline expanding forms.
        Line 1: incomplete dot · time · mL · diaper selector (W P WP -) · details button
        Line 2: symbol toggles ☀ Rx ★ · notes indicator · save feedback
-       Line 3: tummy time duration form (shown when star is tapped)
-     Notes are not shown inline — see EntryDetailSheet.
-     Tummy time: single-session toggle; tapping opens a duration prompt. -->
+     Rx and Tummy Time editing opens a bottom sheet (AppSheet).
+     Notes are not shown inline — see EntryDetailSheet. -->
 <template>
   <div class="entry-row" :class="{ 'entry-row--incomplete': incomplete }">
 
@@ -86,22 +85,22 @@
         </svg>
       </button>
 
-      <!-- Medication — mint when on; tap to open details form -->
+      <!-- Medication — mint when on; tap to open bottom sheet -->
       <button
         class="sym-btn"
         :class="{ 'sym-btn--med-on': entry.medication }"
         type="button"
         :aria-label="entry.medication ? 'Medication recorded — tap to edit' : 'Medication — tap to record'"
-        @click="openMedForm"
+        @click="openMedSheet"
       >Rx<span v-if="medNoteCue" class="med-note-cue">{{ medNoteCue }}</span></button>
 
-      <!-- Tummy Time — tap to open duration form -->
+      <!-- Tummy Time — tap to open bottom sheet -->
       <button
         class="sym-btn sym-btn--tt"
         :class="{ 'sym-btn--tt-on': tummyActive }"
         type="button"
         :aria-label="tummyActive ? 'Tummy time recorded — tap to edit' : 'Tummy time — tap to record'"
-        @click="openTtForm"
+        @click="openTtSheet"
       >★<span v-if="tummyDuration" class="tt-dur">{{ tummyDuration }}</span></button>
 
       <!-- Notes compact indicator — tapping opens the detail sheet -->
@@ -123,60 +122,76 @@
 
     </div>
 
-    <!-- ── Line 3: Medication details form ──────────────────────────── -->
-    <div v-if="medFormOpen" class="med-form">
-      <span class="med-form-label text-soft text-xs">Medication details</span>
-      <input
-        v-model="medNote"
-        class="med-input"
-        type="text"
-        placeholder="Name, dosage"
-        maxlength="200"
-      />
-      <div class="med-form-btns">
-        <button class="med-btn med-btn--save" type="button" @click="saveMed">Save</button>
-        <button v-if="entry.medication" class="med-btn med-btn--clear" type="button" @click="clearMed">Clear</button>
-        <button class="med-btn med-btn--cancel" type="button" @click="cancelMed">✕</button>
+    <!-- ── Medication bottom sheet ─────────────────────────────────────── -->
+    <AppSheet v-model="medSheetOpen" title="Medication details">
+      <div class="qa-body">
+        <input
+          ref="medInputRef"
+          v-model="medNote"
+          class="qa-input"
+          type="text"
+          placeholder="Name, dosage"
+          maxlength="200"
+          autocomplete="off"
+        />
+        <div class="qa-btns">
+          <button class="qa-btn qa-btn--save" type="button" @click="saveMed">Save</button>
+          <button
+            v-if="entry.medication"
+            class="qa-btn qa-btn--clear"
+            type="button"
+            @click="clearMed"
+          >Clear Medication</button>
+          <button class="qa-btn qa-btn--cancel" type="button" @click="cancelMed">Cancel</button>
+        </div>
       </div>
-    </div>
+    </AppSheet>
 
-    <!-- ── Line 4: Tummy Time duration form ──────────────────────────── -->
-    <div v-if="ttFormOpen" class="tt-form">
-      <span class="tt-form-label text-soft text-xs">How long?</span>
-      <div class="tt-inputs">
-        <input
-          v-model.number="ttMinutes"
-          class="tt-input"
-          type="number"
-          min="0"
-          max="99"
-          inputmode="numeric"
-          placeholder="0"
-        />
-        <span class="tt-input-unit text-faint text-xs">m</span>
-        <input
-          v-model.number="ttSeconds"
-          class="tt-input"
-          type="number"
-          min="0"
-          max="59"
-          inputmode="numeric"
-          placeholder="0"
-        />
-        <span class="tt-input-unit text-faint text-xs">s</span>
+    <!-- ── Tummy Time bottom sheet ─────────────────────────────────────── -->
+    <AppSheet v-model="ttSheetOpen" title="How long was Tummy Time?">
+      <div class="qa-body">
+        <div class="tt-row">
+          <input
+            v-model.number="ttMinutes"
+            class="tt-duration-input"
+            type="number"
+            min="0"
+            max="99"
+            inputmode="numeric"
+            placeholder="0"
+          />
+          <span class="tt-duration-unit">min</span>
+          <input
+            v-model.number="ttSeconds"
+            class="tt-duration-input"
+            type="number"
+            min="0"
+            max="59"
+            inputmode="numeric"
+            placeholder="0"
+          />
+          <span class="tt-duration-unit">sec</span>
+        </div>
+        <p class="qa-hint text-faint text-xs">Leave blank to record the session without a duration.</p>
+        <div class="qa-btns">
+          <button class="qa-btn qa-btn--save qa-btn--save-tt" type="button" @click="saveTt">Save</button>
+          <button
+            v-if="tummyActive"
+            class="qa-btn qa-btn--clear"
+            type="button"
+            @click="clearTt"
+          >Clear Tummy Time</button>
+          <button class="qa-btn qa-btn--cancel" type="button" @click="cancelTt">Cancel</button>
+        </div>
       </div>
-      <div class="tt-form-btns">
-        <button class="tt-btn tt-btn--save" type="button" @click="saveTt">Save</button>
-        <button v-if="tummyActive" class="tt-btn tt-btn--clear" type="button" @click="clearTt">Clear</button>
-        <button class="tt-btn tt-btn--cancel" type="button" @click="cancelTt">✕</button>
-      </div>
-    </div>
+    </AppSheet>
 
   </div>
 </template>
 
 <script setup>
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, nextTick } from 'vue'
+import AppSheet from '@/ui/AppSheet.vue'
 import { isIncomplete, hasTummyTimeSession, formatTummyDuration } from '@/utils/entryUtils.js'
 
 const props = defineProps({
@@ -191,7 +206,7 @@ const DIAPER_OPTIONS = [
   { value: '-',  display: '-',  label: 'No diaper change' },
 ]
 
-const incomplete   = computed(() => isIncomplete(props.entry))
+const incomplete    = computed(() => isIncomplete(props.entry))
 const tummyActive   = computed(() => hasTummyTimeSession(props.entry))
 const tummyDuration = computed(() => formatTummyDuration(props.entry.tummyTimeDurationSeconds))
 const hasNotes      = computed(() => !!(props.entry.notes))
@@ -201,7 +216,7 @@ const medNoteCue = computed(() => {
   if (!n) return null
   return n.length > 10 ? n.slice(0, 10) + '…' : n
 })
-const mlDisplay    = computed(() => props.entry.amountMl ?? '')
+const mlDisplay = computed(() => props.entry.amountMl ?? '')
 
 // ── Save feedback ──────────────────────────────────────────────────────────
 
@@ -260,48 +275,47 @@ function onMlBlur(e) {
   }
 }
 
-// ── Medication form ────────────────────────────────────────────────────────
+// ── Medication bottom sheet ────────────────────────────────────────────────
 
-const medFormOpen = ref(false)
-const medNote     = ref('')
+const medSheetOpen = ref(false)
+const medNote      = ref('')
+const medInputRef  = ref(null)
 
-function openMedForm() {
-  if (medFormOpen.value) { medFormOpen.value = false; return }
-  ttFormOpen.value = false
+function openMedSheet() {
+  if (medSheetOpen.value) return
+  ttSheetOpen.value = false
   medNote.value = props.entry.medicationNote ?? ''
-  medFormOpen.value = true
+  medSheetOpen.value = true
+  nextTick(() => medInputRef.value?.focus())
 }
 
 function saveMed() {
   emitUpdate({ medication: true, medicationNote: medNote.value.trim() || null })
-  medFormOpen.value = false
+  medSheetOpen.value = false
 }
 
 function clearMed() {
   emitUpdate({ medication: false, medicationNote: null })
-  medFormOpen.value = false
+  medSheetOpen.value = false
 }
 
 function cancelMed() {
-  medFormOpen.value = false
+  medSheetOpen.value = false
 }
 
-// ── Tummy Time form ────────────────────────────────────────────────────────
+// ── Tummy Time bottom sheet ────────────────────────────────────────────────
 
-const ttFormOpen = ref(false)
-const ttMinutes  = ref(0)
-const ttSeconds  = ref(0)
+const ttSheetOpen = ref(false)
+const ttMinutes   = ref(0)
+const ttSeconds   = ref(0)
 
-function openTtForm() {
-  if (ttFormOpen.value) {
-    ttFormOpen.value = false
-    return
-  }
-  medFormOpen.value = false
-  const existing  = props.entry.tummyTimeDurationSeconds ?? 0
+function openTtSheet() {
+  if (ttSheetOpen.value) return
+  medSheetOpen.value = false
+  const existing = props.entry.tummyTimeDurationSeconds ?? 0
   ttMinutes.value = Math.floor(existing / 60)
   ttSeconds.value = existing % 60
-  ttFormOpen.value = true
+  ttSheetOpen.value = true
 }
 
 function saveTt() {
@@ -313,7 +327,7 @@ function saveTt() {
     tummyTimeCount:           1,
     tummyTimeDurationSeconds: total > 0 ? total : null,
   })
-  ttFormOpen.value = false
+  ttSheetOpen.value = false
 }
 
 function clearTt() {
@@ -322,11 +336,11 @@ function clearTt() {
     tummyTimeCount:           0,
     tummyTimeDurationSeconds: null,
   })
-  ttFormOpen.value = false
+  ttSheetOpen.value = false
 }
 
 function cancelTt() {
-  ttFormOpen.value = false
+  ttSheetOpen.value = false
 }
 </script>
 
@@ -533,9 +547,7 @@ function cancelTt() {
   flex-shrink: 0;
 }
 
-.sym-btn--vitd-on {
-  color: var(--color-gold);
-}
+.sym-btn--vitd-on { color: var(--color-gold); }
 
 .sym-btn--med-on {
   color: var(--color-mint);
@@ -577,73 +589,6 @@ function cancelTt() {
 .sym-save--saved  { color: var(--color-success); }
 .sym-save--error  { color: var(--color-error); }
 
-/* ── Line 3: Medication details form ─────────────────────────────────── */
-
-.med-form {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  padding-left: calc(var(--space-3) + 10px + var(--space-2));
-  background: var(--color-mint-soft);
-  border-top: 1px solid var(--color-border-soft);
-}
-
-.med-form-label {
-  flex-shrink: 0;
-}
-
-.med-input {
-  flex: 1;
-  min-width: 120px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
-  font-family: var(--font-family);
-  font-size: var(--font-size-sm);
-  color: var(--color-text);
-  padding: 2px 6px;
-}
-.med-input:focus {
-  outline: none;
-  border-color: var(--color-mint);
-}
-
-.med-form-btns {
-  display: flex;
-  gap: var(--space-1);
-  margin-left: auto;
-}
-
-.med-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-family: var(--font-family);
-  font-size: var(--font-size-xs);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  min-height: 28px;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-}
-
-.med-btn--save {
-  background: var(--color-mint);
-  color: #fff;
-  font-weight: var(--font-weight-medium);
-}
-
-.med-btn--clear {
-  color: var(--color-text-faint);
-  border: 1px solid var(--color-border);
-}
-
-.med-btn--cancel {
-  color: var(--color-text-faint);
-}
-
 .med-note-cue {
   font-size: 8px;
   font-weight: var(--font-weight-semibold);
@@ -651,81 +596,109 @@ function cancelTt() {
   margin-left: 1px;
 }
 
-/* ── Line 4: Tummy Time form ──────────────────────────────────────────── */
+/* ── Quick-action sheet content (shared by Rx and TT sheets) ─────────── */
 
-.tt-form {
+.qa-body {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  padding: var(--space-2) var(--space-3);
-  padding-left: calc(var(--space-3) + 10px + var(--space-2));
-  background: var(--color-lavender-soft);
-  border-top: 1px solid var(--color-border-soft);
+  flex-direction: column;
+  gap: var(--space-4);
 }
 
-.tt-form-label {
-  flex-shrink: 0;
-}
-
-.tt-inputs {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.tt-input {
-  width: 38px;
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+.qa-input {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-base);
   font-family: var(--font-family);
-  font-size: var(--font-size-sm);
   color: var(--color-text);
-  padding: 2px 4px;
+  background: var(--color-surface);
+  box-sizing: border-box;
+}
+.qa-input:focus {
+  outline: none;
+  border-color: var(--color-mint);
+}
+
+/* TT duration row */
+.tt-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: center;
+  padding: var(--space-2) 0;
+}
+
+.tt-duration-input {
+  width: 72px;
+  padding: var(--space-3) var(--space-2);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-xl);
+  font-family: var(--font-family);
+  color: var(--color-text);
+  background: var(--color-surface);
   text-align: center;
   -moz-appearance: textfield;
 }
-.tt-input::-webkit-inner-spin-button,
-.tt-input::-webkit-outer-spin-button {
+.tt-duration-input::-webkit-inner-spin-button,
+.tt-duration-input::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
-
-.tt-input-unit {
-  line-height: 1;
+.tt-duration-input:focus {
+  outline: none;
+  border-color: var(--color-lavender);
 }
 
-.tt-form-btns {
+.tt-duration-unit {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-soft);
+  font-weight: var(--font-weight-medium);
+  min-width: 28px;
+}
+
+.qa-hint {
+  text-align: center;
+  margin-top: calc(-1 * var(--space-2));
+}
+
+/* Buttons */
+.qa-btns {
   display: flex;
-  gap: var(--space-1);
-  margin-left: auto;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
-.tt-btn {
-  background: none;
-  border: none;
-  cursor: pointer;
+.qa-btn {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
   font-family: var(--font-family);
-  font-size: var(--font-size-xs);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
-  min-height: 28px;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+  border: none;
+  min-height: 48px;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
+  transition: opacity var(--duration-fast);
+}
+.qa-btn:active { opacity: 0.82; }
+
+.qa-btn--save    { background: var(--color-mint);     color: #fff; }
+.qa-btn--save-tt { background: var(--color-lavender); color: #fff; }
+
+.qa-btn--clear {
+  background: none;
+  border: 1.5px solid var(--color-border);
+  color: var(--color-text-soft);
 }
 
-.tt-btn--save {
-  background: var(--color-lavender);
-  color: #fff;
-  font-weight: var(--font-weight-medium);
-}
-
-.tt-btn--clear {
+.qa-btn--cancel {
+  background: none;
   color: var(--color-text-faint);
-  border: 1px solid var(--color-border);
-}
-
-.tt-btn--cancel {
-  color: var(--color-text-faint);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-normal);
+  min-height: 40px;
 }
 </style>
