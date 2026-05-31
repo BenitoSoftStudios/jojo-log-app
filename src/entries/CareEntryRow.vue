@@ -130,7 +130,7 @@
         v-model="medNote"
         class="med-input"
         type="text"
-        placeholder="Name, dosage, or note"
+        placeholder="Name, dosage"
         maxlength="200"
       />
       <div class="med-form-btns">

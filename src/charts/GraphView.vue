@@ -28,7 +28,7 @@
       </div>
 
       <!-- Summary stat cards -->
-      <div v-if="dailyStats.length > 0" class="stats-row">
+      <div v-if="!sinceBirthMissingBirthdate && dailyStats.length > 0" class="stats-row">
         <div class="stat-card">
           <div class="stat-value">{{ avgMl }}</div>
           <div class="stat-unit">mL/day</div>
@@ -44,7 +44,7 @@
       </div>
 
       <!-- Explanatory banner -->
-      <div v-if="dailyStats.length > 0" class="trends-banner">
+      <div v-if="!sinceBirthMissingBirthdate && dailyStats.length > 0" class="trends-banner">
         <p class="trends-banner-body text-soft text-sm">
           Trends summarizes what was logged for this baby: daily volume, feed count, and Tummy Time.
           Tap a Daily volume bar to inspect a day.
@@ -52,12 +52,19 @@
         <p class="trends-banner-note text-faint text-xs">Descriptive log only. Not feeding guidance.</p>
       </div>
 
-      <!-- No entries -->
-      <div v-if="dailyStats.length === 0" class="empty-state">
+      <!-- Since birth: no birthdate set -->
+      <div v-if="sinceBirthMissingBirthdate" class="empty-state-banner">
+        <p class="text-soft text-sm">
+          Add a birthdate in Baby Settings to use Since birth trends. For privacy, a nearby date is fine.
+        </p>
+      </div>
+
+      <!-- No entries (other ranges, or birth range has data) -->
+      <div v-else-if="dailyStats.length === 0" class="empty-state">
         <p class="text-faint text-sm">No entries in this range.</p>
       </div>
 
-      <template v-else>
+      <template v-else-if="!sinceBirthMissingBirthdate">
         <!-- ── Volume chart ──────────────────────────────────────────── -->
         <AppCard>
           <div class="chart-header">
@@ -316,9 +323,15 @@ const startDate = computed(() => {
 
 // ── Daily data ─────────────────────────────────────────────────────────────
 
-const dailyStats = computed(() =>
-  computeDailyStats(entries.value, startDate.value, todayDate.value)
+// Since birth without a birthdate shows a soft banner instead of falling back to earliest entry.
+const sinceBirthMissingBirthdate = computed(() =>
+  selectedRange.value === 'birth' && !sinceBirthStart.value
 )
+
+const dailyStats = computed(() => {
+  if (sinceBirthMissingBirthdate.value) return []
+  return computeDailyStats(entries.value, startDate.value, todayDate.value)
+})
 
 // ── Monthly grouping for Since birth with many days ────────────────────────
 
@@ -726,4 +739,13 @@ function formatDayLabel(dateStr) {
   padding: var(--space-8) var(--space-4);
   text-align: center;
 }
+
+.empty-state-banner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-4);
+  text-align: center;
+}
+.empty-state-banner p { margin: 0; line-height: 1.5; }
 </style>

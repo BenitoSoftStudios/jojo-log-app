@@ -1,5 +1,4 @@
-<!-- Baby Switcher — selects the active Baby from the family's active babies list.
-     Phase 2: renders with placeholder data. Phase 3 wires useBabies composable. -->
+<!-- Baby Switcher — selects the active Baby from the family's active babies list. -->
 <template>
   <div class="baby-switcher">
     <button
@@ -9,14 +8,17 @@
       :class="{ 'baby-btn--active': baby.id === activeBabyId }"
       @click="$emit('select', baby.id)"
     >
+      <AnimalAvatar :animal-key="baby.animalAvatar" :size="20" class="switcher-avatar" />
       {{ baby.nickname }}
     </button>
   </div>
 </template>
 
 <script setup>
+import AnimalAvatar from '@/animals/AnimalAvatar.vue'
+
 defineProps({
-  babies:       { type: Array, default: () => [] }, // [{ id, nickname }]
+  babies:       { type: Array, default: () => [] }, // [{ id, nickname, animalAvatar }]
   activeBabyId: { type: String, default: null }
 })
 defineEmits(['select'])
@@ -34,6 +36,9 @@ defineEmits(['select'])
 .baby-switcher::-webkit-scrollbar { display: none; }
 
 .baby-btn {
+  display: flex;
+  align-items: center;
+  gap: var(--space-1);
   background: transparent;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-full);
@@ -57,4 +62,6 @@ defineEmits(['select'])
   border-color: var(--color-mint);
   color: var(--color-mint);
 }
+
+.switcher-avatar { flex-shrink: 0; }
 </style>
