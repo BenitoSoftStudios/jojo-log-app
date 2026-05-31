@@ -7,6 +7,7 @@ const HEADERS = [
   'createdAt', 'updatedByLabel', 'updatedAt',
   'deleted', 'deletedAt', 'weekStartDate', 'usualBottleAmountMl',
   'tummyTimeDurationSeconds',
+  'medicationNote',
 ]
 
 export function escapeCell(val) {
@@ -49,6 +50,7 @@ export function buildCsvRow(entry, babyNickname, weeklyAmounts) {
     weekStart,
     usualBottle,
     entry.tummyTimeDurationSeconds ?? '',
+    entry.medicationNote           ?? '',
   ]
   return values.map(escapeCell).join(',')
 }

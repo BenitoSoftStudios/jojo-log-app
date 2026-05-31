@@ -175,6 +175,7 @@ describe('parseAppCsv — tummyTimeCount', () => {
 
 const V1_HEADER = 'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl'
 const V2_HEADER = V1_HEADER + ',tummyTimeDurationSeconds'
+const V3_HEADER = V2_HEADER + ',medicationNote'
 
 describe('parseAppCsv — tummyTimeDurationSeconds', () => {
   it('v1 file (19 cols) parses with tummyTimeDurationSeconds = null', () => {
@@ -201,6 +202,38 @@ describe('parseAppCsv — tummyTimeDurationSeconds', () => {
     const row = makeRow() + ',abc'
     const { entries } = parseAppCsv([V2_HEADER, row].join('\n'))
     expect(entries[0].tummyTimeDurationSeconds).toBeNull()
+  })
+})
+
+// ── medicationNote ──────────────────────────────────────────────────────────
+
+describe('parseAppCsv — medicationNote', () => {
+  it('v1 file (19 cols) parses with medicationNote = null', () => {
+    const { entries, errors } = parseAppCsv([V1_HEADER, makeRow()].join('\n'))
+    expect(errors).toHaveLength(0)
+    expect(entries[0].medicationNote).toBeNull()
+  })
+
+  it('v2 file (20 cols) parses with medicationNote = null', () => {
+    const { entries } = parseAppCsv([V2_HEADER, makeRow() + ','].join('\n'))
+    expect(entries[0].medicationNote).toBeNull()
+  })
+
+  it('v3 file (21 cols) parses medicationNote correctly', () => {
+    const { entries, errors } = parseAppCsv([V3_HEADER, makeRow() + ',,Tylenol 2.5 mL'].join('\n'))
+    expect(errors).toHaveLength(0)
+    expect(entries[0].medicationNote).toBe('Tylenol 2.5 mL')
+  })
+
+  it('v3 file with blank medicationNote gives null', () => {
+    const { entries } = parseAppCsv([V3_HEADER, makeRow() + ',330,'].join('\n'))
+    expect(entries[0].medicationNote).toBeNull()
+  })
+
+  it('v3 file with medicationNote but no duration gives null duration and non-null note', () => {
+    const { entries } = parseAppCsv([V3_HEADER, makeRow() + ',,Ibuprofen'].join('\n'))
+    expect(entries[0].tummyTimeDurationSeconds).toBeNull()
+    expect(entries[0].medicationNote).toBe('Ibuprofen')
   })
 })
 

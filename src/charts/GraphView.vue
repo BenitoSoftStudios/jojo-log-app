@@ -83,32 +83,36 @@
 
           <div class="chart-scroll">
             <svg :width="svgWidth" height="175" class="chart-svg">
-              <!-- Y-axis scale hint: max value at top-left -->
-              <text v-if="chartMlMax > 0" x="3" y="12" class="chart-axis-label">{{ chartMlMax }} mL</text>
+              <!-- Y-axis: line + 0 label + max label -->
+              <line :x1="LEFT_AXIS_W" :x2="LEFT_AXIS_W" y1="20" :y2="ML_FLOOR" class="chart-yaxis" />
+              <text :x="LEFT_AXIS_W - 4" :y="ML_FLOOR - 2" text-anchor="end" class="chart-axis-label">0</text>
+              <text v-if="niceChartMlMax > 0" :x="LEFT_AXIS_W - 4" y="22" text-anchor="end" class="chart-axis-label">{{ formatAxisLabel(niceChartMlMax, 'ml') }}</text>
+              <!-- Midpoint gridline -->
+              <line v-if="niceChartMlMax > 0" :x1="LEFT_AXIS_W" :x2="svgWidth" :y1="ML_FLOOR - ML_MAX_H / 2" :y2="ML_FLOOR - ML_MAX_H / 2" class="chart-gridline" />
 
               <!-- Column highlights: today (subtle) + selected (mint) -->
               <template v-for="(row, i) in chartRows" :key="`hl-${i}`">
                 <rect
                   v-if="i === todayChartIdx"
-                  :x="i * colWidth" y="0"
+                  :x="i * colWidth + LEFT_AXIS_W" y="0"
                   :width="colWidth" height="150"
                   class="col-today"
                 />
                 <rect
                   v-if="selectedIdx !== null && selectedIdx === i"
-                  :x="i * colWidth" y="0"
+                  :x="i * colWidth + LEFT_AXIS_W" y="0"
                   :width="colWidth" height="150"
                   class="col-selected"
                 />
               </template>
 
               <!-- Baseline -->
-              <line x1="0" :x2="svgWidth" :y1="ML_FLOOR" :y2="ML_FLOOR" class="chart-baseline" />
+              <line :x1="LEFT_AXIS_W" :x2="svgWidth" :y1="ML_FLOOR" :y2="ML_FLOOR" class="chart-baseline" />
 
               <!-- Period average horizontal line -->
               <line
                 v-if="periodAvgMlY !== null"
-                x1="0" :x2="svgWidth"
+                :x1="LEFT_AXIS_W" :x2="svgWidth"
                 :y1="periodAvgMlY" :y2="periodAvgMlY"
                 class="avg-h-line"
               />
@@ -117,7 +121,7 @@
               <template v-for="(row, i) in chartRows" :key="`mlb-${i}`">
                 <rect
                   v-if="mlBarH(row.totalMl) > 0"
-                  :x="i * colWidth + barPad" :y="ML_FLOOR - mlBarH(row.totalMl)"
+                  :x="i * colWidth + barPad + LEFT_AXIS_W" :y="ML_FLOOR - mlBarH(row.totalMl)"
                   :width="barInnerW" :height="mlBarH(row.totalMl)"
                   :class="i === todayChartIdx ? 'chart-bar chart-bar--today' : 'chart-bar'"
                   rx="3"
@@ -135,7 +139,7 @@
               <template v-for="(row, i) in chartRows" :key="`lbl-${i}`">
                 <text
                   v-if="showChartLabel(i)"
-                  :x="i * colWidth + colWidth / 2"
+                  :x="i * colWidth + colWidth / 2 + LEFT_AXIS_W"
                   y="160"
                   text-anchor="middle"
                   class="chart-date"
@@ -146,7 +150,7 @@
               <rect
                 v-for="(row, i) in chartRows"
                 :key="`hit-${i}`"
-                :x="i * colWidth" y="0"
+                :x="i * colWidth + LEFT_AXIS_W" y="0"
                 :width="colWidth" height="175"
                 fill="transparent"
                 style="cursor:pointer"
@@ -162,13 +166,15 @@
           <p v-if="chartFeedMax === 0" class="text-faint text-xs chart-empty-note">No feeds recorded.</p>
           <div v-else class="chart-scroll">
             <svg :width="svgWidth" :height="compactSvgH" class="chart-svg">
-              <!-- Y-axis scale hint -->
-              <text v-if="chartFeedMax > 0" x="3" y="10" class="chart-axis-label">{{ chartFeedMax }}</text>
-              <line x1="0" :x2="svgWidth" :y1="CT_FLOOR" :y2="CT_FLOOR" class="chart-baseline" />
+              <!-- Y-axis: line + 0 label + max label -->
+              <line :x1="LEFT_AXIS_W" :x2="LEFT_AXIS_W" y1="8" :y2="CT_FLOOR" class="chart-yaxis" />
+              <text :x="LEFT_AXIS_W - 4" :y="CT_FLOOR - 2" text-anchor="end" class="chart-axis-label">0</text>
+              <text v-if="niceChartFeedMax > 0" :x="LEFT_AXIS_W - 4" y="12" text-anchor="end" class="chart-axis-label">{{ niceChartFeedMax }}</text>
+              <line :x1="LEFT_AXIS_W" :x2="svgWidth" :y1="CT_FLOOR" :y2="CT_FLOOR" class="chart-baseline" />
               <template v-for="(row, i) in chartRows" :key="`fb-${i}`">
                 <rect
                   v-if="feedBarH(row.feedCount) > 0"
-                  :x="i * colWidth + barPad" :y="CT_FLOOR - feedBarH(row.feedCount)"
+                  :x="i * colWidth + barPad + LEFT_AXIS_W" :y="CT_FLOOR - feedBarH(row.feedCount)"
                   :width="barInnerW" :height="feedBarH(row.feedCount)"
                   class="chart-bar"
                   rx="2"
@@ -177,7 +183,7 @@
               <template v-for="(row, i) in chartRows" :key="`fdl-${i}`">
                 <text
                   v-if="showChartLabel(i)"
-                  :x="i * colWidth + colWidth / 2"
+                  :x="i * colWidth + colWidth / 2 + LEFT_AXIS_W"
                   :y="CT_FLOOR + 14"
                   text-anchor="middle"
                   class="chart-date"
@@ -193,13 +199,15 @@
           <p v-if="chartTummyMax === 0" class="text-faint text-xs chart-empty-note">No sessions recorded.</p>
           <div v-else class="chart-scroll">
             <svg :width="svgWidth" :height="compactSvgH" class="chart-svg">
-              <!-- Y-axis scale hint -->
-              <text v-if="chartTummyMax > 0" x="3" y="10" class="chart-axis-label">{{ chartTummyMax }}</text>
-              <line x1="0" :x2="svgWidth" :y1="CT_FLOOR" :y2="CT_FLOOR" class="chart-baseline" />
+              <!-- Y-axis: line + 0 label + max label -->
+              <line :x1="LEFT_AXIS_W" :x2="LEFT_AXIS_W" y1="8" :y2="CT_FLOOR" class="chart-yaxis" />
+              <text :x="LEFT_AXIS_W - 4" :y="CT_FLOOR - 2" text-anchor="end" class="chart-axis-label">0</text>
+              <text v-if="niceChartTummyMax > 0" :x="LEFT_AXIS_W - 4" y="12" text-anchor="end" class="chart-axis-label">{{ niceChartTummyMax }}</text>
+              <line :x1="LEFT_AXIS_W" :x2="svgWidth" :y1="CT_FLOOR" :y2="CT_FLOOR" class="chart-baseline" />
               <template v-for="(row, i) in chartRows" :key="`tb-${i}`">
                 <rect
                   v-if="tummyBarH(row.tummyCount) > 0"
-                  :x="i * colWidth + barPad" :y="CT_FLOOR - tummyBarH(row.tummyCount)"
+                  :x="i * colWidth + barPad + LEFT_AXIS_W" :y="CT_FLOOR - tummyBarH(row.tummyCount)"
                   :width="barInnerW" :height="tummyBarH(row.tummyCount)"
                   class="chart-bar chart-bar--tummy"
                   rx="2"
@@ -208,7 +216,7 @@
               <template v-for="(row, i) in chartRows" :key="`tdl-${i}`">
                 <text
                   v-if="showChartLabel(i)"
-                  :x="i * colWidth + colWidth / 2"
+                  :x="i * colWidth + colWidth / 2 + LEFT_AXIS_W"
                   :y="CT_FLOOR + 14"
                   text-anchor="middle"
                   class="chart-date"
@@ -254,6 +262,8 @@ import {
   sevenDayRollingAvg,
   addDays,
   groupByMonth,
+  niceMax,
+  formatAxisLabel,
 } from '@/utils/graphData.js'
 
 // ── Ranges ─────────────────────────────────────────────────────────────────
@@ -266,10 +276,11 @@ const RANGES = [
 
 // ── SVG coordinate constants ────────────────────────────────────────────────
 
-const ML_FLOOR = 140   // baseline y in mL chart (SVG height 175)
-const ML_MAX_H = 120   // maximum bar height above baseline
-const CT_FLOOR = 62    // baseline y in compact charts
-const CT_MAX_H = 54    // max bar height in compact charts
+const ML_FLOOR    = 140   // baseline y in mL chart (SVG height 175)
+const ML_MAX_H    = 120   // maximum bar height above baseline
+const CT_FLOOR    = 62    // baseline y in compact charts
+const CT_MAX_H    = 54    // max bar height in compact charts
+const LEFT_AXIS_W = 28    // px reserved on the left for y-axis line + labels
 
 // ── Composables ────────────────────────────────────────────────────────────
 
@@ -324,10 +335,15 @@ const chartRows = computed(() =>
   useMonthlyView.value ? monthlyStats.value : dailyStats.value
 )
 
-// Max values scale bars — always based on chartRows
+// Raw maxes (used for empty-chart detection)
 const chartMlMax    = computed(() => Math.max(0, ...chartRows.value.map(d => d.totalMl)))
 const chartFeedMax  = computed(() => Math.max(0, ...chartRows.value.map(d => d.feedCount)))
 const chartTummyMax = computed(() => Math.max(0, ...chartRows.value.map(d => d.tummyCount)))
+
+// Nice (rounded) maxes — used for bar height scaling and axis labels
+const niceChartMlMax    = computed(() => niceMax(chartMlMax.value, 'ml'))
+const niceChartFeedMax  = computed(() => niceMax(chartFeedMax.value, 'count'))
+const niceChartTummyMax = computed(() => niceMax(chartTummyMax.value, 'count'))
 
 // ── Rolling average (daily mode only) ─────────────────────────────────────
 
@@ -414,7 +430,7 @@ const colWidth = computed(() => {
   return 8
 })
 
-const svgWidth  = computed(() => Math.max(300, chartRows.value.length * colWidth.value))
+const svgWidth  = computed(() => Math.max(300, chartRows.value.length * colWidth.value + LEFT_AXIS_W))
 const barPad    = computed(() => Math.max(2, Math.round(colWidth.value * 0.1)))
 const barInnerW = computed(() => Math.max(1, colWidth.value - barPad.value * 2))
 
@@ -424,35 +440,35 @@ const compactSvgH = 90  // always include room for x-axis labels
 // ── Bar height functions ────────────────────────────────────────────────────
 
 function mlBarH(value) {
-  if (chartMlMax.value === 0 || value === 0) return 0
-  return Math.max(3, Math.round((value / chartMlMax.value) * ML_MAX_H))
+  if (niceChartMlMax.value === 0 || value === 0) return 0
+  return Math.max(3, Math.round((value / niceChartMlMax.value) * ML_MAX_H))
 }
 function feedBarH(value) {
-  if (chartFeedMax.value === 0 || value === 0) return 0
-  return Math.max(3, Math.round((value / chartFeedMax.value) * CT_MAX_H))
+  if (niceChartFeedMax.value === 0 || value === 0) return 0
+  return Math.max(3, Math.round((value / niceChartFeedMax.value) * CT_MAX_H))
 }
 function tummyBarH(value) {
-  if (chartTummyMax.value === 0 || value === 0) return 0
-  return Math.max(3, Math.round((value / chartTummyMax.value) * CT_MAX_H))
+  if (niceChartTummyMax.value === 0 || value === 0) return 0
+  return Math.max(3, Math.round((value / niceChartTummyMax.value) * CT_MAX_H))
 }
 
 // ── Period average horizontal line ─────────────────────────────────────────
 
 const periodAvgMlY = computed(() => {
   const withData = chartRows.value.filter(r => r.feedCount > 0 || r.totalMl > 0)
-  if (!withData.length || chartMlMax.value === 0) return null
+  if (!withData.length || niceChartMlMax.value === 0) return null
   const avg = withData.reduce((s, d) => s + d.totalMl, 0) / withData.length
-  const y = ML_FLOOR - Math.round((avg / chartMlMax.value) * ML_MAX_H)
-  return y < ML_FLOOR - 4 ? y : null  // skip if it would sit on the baseline
+  const y = ML_FLOOR - Math.round((avg / niceChartMlMax.value) * ML_MAX_H)
+  return y < ML_FLOOR - 4 ? y : null
 })
 
 // ── Rolling average polyline (daily mode only) ─────────────────────────────
 
 const avgLinePoints = computed(() => {
-  if (useMonthlyView.value || chartMlMax.value === 0) return ''
+  if (useMonthlyView.value || niceChartMlMax.value === 0) return ''
   return rollingAvgs.value.map((avg, i) => {
-    const x = i * colWidth.value + colWidth.value / 2
-    const y = ML_FLOOR - Math.round((avg / chartMlMax.value) * ML_MAX_H)
+    const x = i * colWidth.value + colWidth.value / 2 + LEFT_AXIS_W
+    const y = ML_FLOOR - Math.round((avg / niceChartMlMax.value) * ML_MAX_H)
     return `${x},${y}`
   }).join(' ')
 })
@@ -633,6 +649,27 @@ function formatDayLabel(dateStr) {
 .day-callout-hint  { margin-left: auto; }
 
 /* ── SVG element styles ──────────────────────────────────────────────────── */
+
+/* Y-axis line */
+.chart-yaxis {
+  stroke: var(--color-border);
+  stroke-width: 1;
+}
+
+/* Midpoint reference gridline */
+.chart-gridline {
+  stroke: var(--color-border-soft);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+/* Axis value labels (0, max) */
+.chart-axis-label {
+  font-size: 9px;
+  fill: var(--color-text-faint);
+  font-family: var(--font-family);
+  pointer-events: none;
+}
 
 .chart-bar        { fill: var(--color-mint); }
 .chart-bar--today { fill: var(--color-success); }

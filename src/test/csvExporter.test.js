@@ -72,10 +72,10 @@ const baseEntry = {
 
 describe('buildCsvRow', () => {
   it('returns correct number of comma-separated fields', () => {
-    // 20 columns; notes is empty, no quoting needed
+    // 21 columns; notes is empty, no quoting needed
     const row = buildCsvRow(baseEntry, 'Jojo', {})
     const cols = row.split(',')
-    expect(cols).toHaveLength(20)
+    expect(cols).toHaveLength(21)
   })
 
   it('includes babyNickname as first field', () => {
@@ -112,6 +112,19 @@ describe('buildCsvRow', () => {
     const row = buildCsvRow(baseEntry, 'Jojo', {})
     const cols = row.split(',')
     expect(cols[19]).toBe('')
+  })
+
+  it('outputs medicationNote as last column (col 20)', () => {
+    const entry = { ...baseEntry, medicationNote: 'Tylenol' }
+    const row = buildCsvRow(entry, 'Jojo', {})
+    const cols = row.split(',')
+    expect(cols[20]).toBe('Tylenol')
+  })
+
+  it('outputs empty medicationNote when null', () => {
+    const row = buildCsvRow(baseEntry, 'Jojo', {})
+    const cols = row.split(',')
+    expect(cols[20]).toBe('')
   })
 
   it('quotes notes containing comma', () => {
@@ -169,7 +182,7 @@ describe('generateCsv', () => {
     const csv = generateCsv([], 'Jojo', {})
     const firstLine = csv.split('\r\n')[0]
     expect(firstLine).toBe(
-      'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl,tummyTimeDurationSeconds'
+      'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl,tummyTimeDurationSeconds,medicationNote'
     )
   })
 

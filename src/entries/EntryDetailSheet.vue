@@ -31,7 +31,7 @@
         class="detail-section detail-section--indicators"
       >
         <span v-if="entry.vitaminD"   class="detail-indicator detail-indicator--vitd">☀ Vitamin D</span>
-        <span v-if="entry.medication" class="detail-indicator detail-indicator--med">Rx Medication</span>
+        <span v-if="entry.medication" class="detail-indicator detail-indicator--med">{{ medicationDisplayText }}</span>
         <span v-if="tummyActive"      class="detail-indicator detail-indicator--tt">★ {{ tummyDisplayText }}</span>
       </div>
 
@@ -124,6 +124,12 @@ const tummyDisplayText = computed(() => {
   if (!props.entry) return 'Tummy Time'
   const dur = formatTummyDuration(props.entry.tummyTimeDurationSeconds)
   return dur ? `Tummy Time: ${dur}` : 'Tummy Time: session tracked'
+})
+
+const medicationDisplayText = computed(() => {
+  if (!props.entry) return 'Rx Medication'
+  const note = props.entry.medicationNote
+  return note ? `Rx Medication: ${note}` : 'Rx Medication: recorded'
 })
 
 const diaperClass = computed(() => {

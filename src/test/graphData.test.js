@@ -5,6 +5,8 @@ import {
   computeDailyStats,
   sevenDayRollingAvg,
   groupByMonth,
+  niceMax,
+  formatAxisLabel,
 } from '@/utils/graphData.js'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -274,4 +276,37 @@ describe('groupByMonth', () => {
     expect(result[0].totalMl).toBe(0)
     expect(result[0].feedCount).toBe(0)
   })
+})
+
+// ── niceMax ───────────────────────────────────────────────────────────────────
+
+describe('niceMax — ml type', () => {
+  it('returns 500 for 0 (no data default)', () => { expect(niceMax(0, 'ml')).toBe(500) })
+  it('returns 250 for 1 mL', () => { expect(niceMax(1, 'ml')).toBe(250) })
+  it('returns 500 for 500 mL (exact)', () => { expect(niceMax(500, 'ml')).toBe(500) })
+  it('returns 1000 for 840 mL', () => { expect(niceMax(840, 'ml')).toBe(1000) })
+  it('returns 25000 for 21858 mL', () => { expect(niceMax(21858, 'ml')).toBe(25000) })
+  it('returns 30000 for 28000 mL', () => { expect(niceMax(28000, 'ml')).toBe(30000) })
+})
+
+describe('niceMax — count type', () => {
+  it('returns 5 for 0 (no data default)', () => { expect(niceMax(0, 'count')).toBe(5) })
+  it('returns 4 for 3', () => { expect(niceMax(3, 'count')).toBe(4) })
+  it('returns 5 for 4', () => { expect(niceMax(4, 'count')).toBe(5) })
+  it('returns 10 for 5', () => { expect(niceMax(5, 'count')).toBe(10) })
+  it('returns 10 for 8', () => { expect(niceMax(8, 'count')).toBe(10) })
+  it('returns 10 for 10', () => { expect(niceMax(10, 'count')).toBe(10) })
+  it('returns 15 for 11', () => { expect(niceMax(11, 'count')).toBe(15) })
+})
+
+// ── formatAxisLabel ───────────────────────────────────────────────────────────
+
+describe('formatAxisLabel', () => {
+  it('formats 250 ml as "250"', () => { expect(formatAxisLabel(250, 'ml')).toBe('250') })
+  it('formats 500 ml as "500"', () => { expect(formatAxisLabel(500, 'ml')).toBe('500') })
+  it('formats 1000 ml as "1k"', () => { expect(formatAxisLabel(1000, 'ml')).toBe('1k') })
+  it('formats 1500 ml as "1.5k"', () => { expect(formatAxisLabel(1500, 'ml')).toBe('1.5k') })
+  it('formats 25000 ml as "25k"', () => { expect(formatAxisLabel(25000, 'ml')).toBe('25k') })
+  it('formats count values as plain string', () => { expect(formatAxisLabel(10, 'count')).toBe('10') })
+  it('formats count 4 as "4"', () => { expect(formatAxisLabel(4, 'count')).toBe('4') })
 })

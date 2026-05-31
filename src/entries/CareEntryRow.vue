@@ -86,14 +86,14 @@
         </svg>
       </button>
 
-      <!-- Medication — mint when on -->
+      <!-- Medication — mint when on; tap to open details form -->
       <button
         class="sym-btn"
         :class="{ 'sym-btn--med-on': entry.medication }"
         type="button"
-        :aria-label="entry.medication ? 'Medication on — tap to turn off' : 'Medication off — tap to turn on'"
-        @click="emitUpdate({ medication: !entry.medication })"
-      >Rx</button>
+        :aria-label="entry.medication ? 'Medication recorded — tap to edit' : 'Medication — tap to record'"
+        @click="openMedForm"
+      >Rx<span v-if="medNoteCue" class="med-note-cue">{{ medNoteCue }}</span></button>
 
       <!-- Tummy Time — tap to open duration form -->
       <button
@@ -123,7 +123,24 @@
 
     </div>
 
-    <!-- ── Line 3: Tummy Time duration form ──────────────────────────── -->
+    <!-- ── Line 3: Medication details form ──────────────────────────── -->
+    <div v-if="medFormOpen" class="med-form">
+      <span class="med-form-label text-soft text-xs">Medication details</span>
+      <input
+        v-model="medNote"
+        class="med-input"
+        type="text"
+        placeholder="Name, dosage, or note"
+        maxlength="200"
+      />
+      <div class="med-form-btns">
+        <button class="med-btn med-btn--save" type="button" @click="saveMed">Save</button>
+        <button v-if="entry.medication" class="med-btn med-btn--clear" type="button" @click="clearMed">Clear</button>
+        <button class="med-btn med-btn--cancel" type="button" @click="cancelMed">✕</button>
+      </div>
+    </div>
+
+    <!-- ── Line 4: Tummy Time duration form ──────────────────────────── -->
     <div v-if="ttFormOpen" class="tt-form">
       <span class="tt-form-label text-soft text-xs">How long?</span>
       <div class="tt-inputs">
@@ -175,9 +192,15 @@ const DIAPER_OPTIONS = [
 ]
 
 const incomplete   = computed(() => isIncomplete(props.entry))
-const tummyActive  = computed(() => hasTummyTimeSession(props.entry))
+const tummyActive   = computed(() => hasTummyTimeSession(props.entry))
 const tummyDuration = computed(() => formatTummyDuration(props.entry.tummyTimeDurationSeconds))
-const hasNotes     = computed(() => !!(props.entry.notes))
+const hasNotes      = computed(() => !!(props.entry.notes))
+
+const medNoteCue = computed(() => {
+  const n = props.entry.medicationNote
+  if (!n) return null
+  return n.length > 10 ? n.slice(0, 10) + '…' : n
+})
 const mlDisplay    = computed(() => props.entry.amountMl ?? '')
 
 // ── Save feedback ──────────────────────────────────────────────────────────
@@ -237,6 +260,32 @@ function onMlBlur(e) {
   }
 }
 
+// ── Medication form ────────────────────────────────────────────────────────
+
+const medFormOpen = ref(false)
+const medNote     = ref('')
+
+function openMedForm() {
+  if (medFormOpen.value) { medFormOpen.value = false; return }
+  ttFormOpen.value = false
+  medNote.value = props.entry.medicationNote ?? ''
+  medFormOpen.value = true
+}
+
+function saveMed() {
+  emitUpdate({ medication: true, medicationNote: medNote.value.trim() || null })
+  medFormOpen.value = false
+}
+
+function clearMed() {
+  emitUpdate({ medication: false, medicationNote: null })
+  medFormOpen.value = false
+}
+
+function cancelMed() {
+  medFormOpen.value = false
+}
+
 // ── Tummy Time form ────────────────────────────────────────────────────────
 
 const ttFormOpen = ref(false)
@@ -248,6 +297,7 @@ function openTtForm() {
     ttFormOpen.value = false
     return
   }
+  medFormOpen.value = false
   const existing  = props.entry.tummyTimeDurationSeconds ?? 0
   ttMinutes.value = Math.floor(existing / 60)
   ttSeconds.value = existing % 60
@@ -527,7 +577,81 @@ function cancelTt() {
 .sym-save--saved  { color: var(--color-success); }
 .sym-save--error  { color: var(--color-error); }
 
-/* ── Line 3: Tummy Time form ──────────────────────────────────────────── */
+/* ── Line 3: Medication details form ─────────────────────────────────── */
+
+.med-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-left: calc(var(--space-3) + 10px + var(--space-2));
+  background: var(--color-mint-soft);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.med-form-label {
+  flex-shrink: 0;
+}
+
+.med-input {
+  flex: 1;
+  min-width: 120px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  padding: 2px 6px;
+}
+.med-input:focus {
+  outline: none;
+  border-color: var(--color-mint);
+}
+
+.med-form-btns {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.med-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  min-height: 28px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.med-btn--save {
+  background: var(--color-mint);
+  color: #fff;
+  font-weight: var(--font-weight-medium);
+}
+
+.med-btn--clear {
+  color: var(--color-text-faint);
+  border: 1px solid var(--color-border);
+}
+
+.med-btn--cancel {
+  color: var(--color-text-faint);
+}
+
+.med-note-cue {
+  font-size: 8px;
+  font-weight: var(--font-weight-semibold);
+  line-height: 1;
+  margin-left: 1px;
+}
+
+/* ── Line 4: Tummy Time form ──────────────────────────────────────────── */
 
 .tt-form {
   display: flex;

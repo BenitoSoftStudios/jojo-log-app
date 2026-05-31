@@ -80,6 +80,38 @@ export function sevenDayRollingAvg(dailyStats) {
   })
 }
 
+const ML_STEPS = [
+  250, 500, 750, 1000, 1250, 1500, 1750, 2000, 2500, 3000,
+  4000, 5000, 7500, 10000, 15000, 20000, 25000, 30000,
+]
+
+/**
+ * Return a rounded axis maximum that is >= rawMax.
+ * type: 'ml' | 'count'
+ * Keeps the scale human-friendly (e.g. 840 mL → 1000, 21858 mL → 25000, 8 feeds → 10).
+ */
+export function niceMax(rawMax, type) {
+  if (rawMax <= 0) return type === 'ml' ? 500 : 5
+  if (type === 'ml') {
+    const found = ML_STEPS.find(s => s >= rawMax)
+    return found ?? Math.ceil(rawMax / 10000) * 10000
+  }
+  // counts (feeds, tummy sessions)
+  if (rawMax <= 4)  return rawMax + 1
+  if (rawMax <= 10) return 10
+  return Math.ceil(rawMax / 5) * 5
+}
+
+/**
+ * Format an axis value for compact display.
+ * type: 'ml' → large numbers shown as "1k", "25k"; 'count' → plain string.
+ */
+export function formatAxisLabel(value, type) {
+  if (type !== 'ml') return String(value)
+  if (value >= 1000) return `${value / 1000}k`
+  return String(value)
+}
+
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
 /**

@@ -156,6 +156,10 @@ export function parseAppCsv(text) {
     const ttDurStr               = idx['tummyTimeDurationSeconds'] !== undefined ? get('tummyTimeDurationSeconds') : ''
     const tummyTimeDurationSeconds = ttDurStr === '' ? null : (parseInt(ttDurStr, 10) || null)
 
+    // medicationNote: optional column added in schema v3 — absent in v1/v2 files
+    const medNoteRaw   = idx['medicationNote'] !== undefined ? get('medicationNote') : ''
+    const medicationNote = medNoteRaw === '' ? null : medNoteRaw
+
     // timestamps preserved as strings; blank → null
     const createdAt  = get('createdAt')  || null
     const updatedAt  = get('updatedAt')  || null
@@ -172,6 +176,7 @@ export function parseAppCsv(text) {
       diaper,
       vitaminD,
       medication,
+      medicationNote,
       tummyTimeCount,
       tummyTimeDurationSeconds,
       notes,

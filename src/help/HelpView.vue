@@ -42,7 +42,7 @@
         </div>
         <div class="legend-row">
           <dt class="legend-key">Med</dt>
-          <dd class="legend-val">Medication given (details in notes)</dd>
+          <dd class="legend-val">Medication — tap to mark medication given and optionally add a name, dosage, or note.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">★</dt>

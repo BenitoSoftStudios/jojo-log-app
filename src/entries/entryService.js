@@ -8,7 +8,7 @@ import {
 // All provenance, source, and delete fields are service-controlled.
 const MUTABLE_FIELDS = new Set([
   'entryDate', 'entryTime', 'amountMl', 'diaper',
-  'vitaminD', 'medication', 'tummyTime', 'tummyTimeCount', 'tummyTimeDurationSeconds', 'notes'
+  'vitaminD', 'medication', 'medicationNote', 'tummyTime', 'tummyTimeCount', 'tummyTimeDurationSeconds', 'notes'
 ])
 
 function entriesCol(familyId, babyId) {
@@ -35,6 +35,7 @@ export async function createEntry(familyId, babyId, fields, member) {
     diaper:          fields.diaper          ?? null,
     vitaminD:        fields.vitaminD        ?? false,
     medication:      fields.medication      ?? false,
+    medicationNote:  fields.medicationNote  ?? null,
     tummyTime:                fields.tummyTime                ?? false,
     tummyTimeCount:           fields.tummyTimeCount           ?? 0,
     tummyTimeDurationSeconds: fields.tummyTimeDurationSeconds ?? null,
