@@ -149,8 +149,12 @@ export function parseAppCsv(text) {
     const deleted    = get('deleted') === 'true'
 
     // tummyTimeCount: blank → 0, numeric → number
-    const ttStr        = get('tummyTimeCount')
+    const ttStr          = get('tummyTimeCount')
     const tummyTimeCount = ttStr === '' ? 0 : (parseInt(ttStr, 10) || 0)
+
+    // tummyTimeDurationSeconds: optional column added in schema v2 — absent in v1 files
+    const ttDurStr               = idx['tummyTimeDurationSeconds'] !== undefined ? get('tummyTimeDurationSeconds') : ''
+    const tummyTimeDurationSeconds = ttDurStr === '' ? null : (parseInt(ttDurStr, 10) || null)
 
     // timestamps preserved as strings; blank → null
     const createdAt  = get('createdAt')  || null
@@ -169,6 +173,7 @@ export function parseAppCsv(text) {
       vitaminD,
       medication,
       tummyTimeCount,
+      tummyTimeDurationSeconds,
       notes,
       source:         get('source')         || null,
       createdByLabel: get('createdByLabel') || null,

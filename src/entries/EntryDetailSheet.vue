@@ -27,12 +27,12 @@
 
       <!-- Indicators (shown only when active) -->
       <div
-        v-if="entry.vitaminD || entry.medication || tummyTimeCount > 0"
+        v-if="entry.vitaminD || entry.medication || tummyActive"
         class="detail-section detail-section--indicators"
       >
-        <span v-if="entry.vitaminD"      class="detail-indicator detail-indicator--vitd">☀ Vitamin D</span>
-        <span v-if="entry.medication"    class="detail-indicator detail-indicator--med">Rx Medication</span>
-        <span v-if="tummyTimeCount > 0"  class="detail-indicator detail-indicator--tt">★ Tummy Time: {{ tummyTimeCount }}</span>
+        <span v-if="entry.vitaminD"   class="detail-indicator detail-indicator--vitd">☀ Vitamin D</span>
+        <span v-if="entry.medication" class="detail-indicator detail-indicator--med">Rx Medication</span>
+        <span v-if="tummyActive"      class="detail-indicator detail-indicator--tt">★ {{ tummyDisplayText }}</span>
       </div>
 
       <!-- Notes — the one editable field in this sheet -->
@@ -75,6 +75,13 @@
         </div>
       </div>
 
+      <!-- Save Entry -->
+      <div class="detail-section detail-section--save">
+        <AppButton :full="true" :disabled="saveState === 'saving'" @click="saveEntry">
+          {{ saveStateLabel }}
+        </AppButton>
+      </div>
+
       <!-- Delete action with confirmation -->
       <div class="detail-section detail-section--actions">
         <template v-if="!deleteConfirming">
@@ -98,7 +105,7 @@
 import { ref, computed, watch } from 'vue'
 import AppSheet  from '@/ui/AppSheet.vue'
 import AppButton         from '@/ui/AppButton.vue'
-import { getTummyTimeCount } from '@/utils/entryUtils.js'
+import { hasTummyTimeSession, formatTummyDuration } from '@/utils/entryUtils.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },
@@ -112,10 +119,11 @@ const sheetOpen = computed({
   set: (v) => emit('update:modelValue', v),
 })
 
-const tummyTimeCount = computed(() => {
-  const e = props.entry
-  if (!e) return 0
-  return getTummyTimeCount(e)
+const tummyActive = computed(() => props.entry ? hasTummyTimeSession(props.entry) : false)
+const tummyDisplayText = computed(() => {
+  if (!props.entry) return 'Tummy Time'
+  const dur = formatTummyDuration(props.entry.tummyTimeDurationSeconds)
+  return dur ? `Tummy Time: ${dur}` : 'Tummy Time: session tracked'
 })
 
 const diaperClass = computed(() => {
@@ -149,6 +157,23 @@ function flushNotes() {
   if (localNotes.value !== (props.entry.notes ?? '')) {
     emit('save-notes', props.entry.id, localNotes.value)
   }
+}
+
+// Save Entry button.
+const saveState     = ref('')
+let   saveStateTimer = null
+
+const saveStateLabel = computed(() => {
+  if (saveState.value === 'saving') return 'Saving…'
+  if (saveState.value === 'saved')  return 'Saved ✓'
+  return 'Save Entry'
+})
+
+function saveEntry() {
+  flushNotes()
+  clearTimeout(saveStateTimer)
+  saveState.value = 'saved'
+  saveStateTimer = setTimeout(() => { saveState.value = '' }, 1800)
 }
 
 // Delete flow.

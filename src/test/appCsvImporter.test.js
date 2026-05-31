@@ -171,6 +171,39 @@ describe('parseAppCsv — tummyTimeCount', () => {
   })
 })
 
+// ── tummyTimeDurationSeconds ────────────────────────────────────────────────
+
+const V1_HEADER = 'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl'
+const V2_HEADER = V1_HEADER + ',tummyTimeDurationSeconds'
+
+describe('parseAppCsv — tummyTimeDurationSeconds', () => {
+  it('v1 file (19 cols) parses with tummyTimeDurationSeconds = null', () => {
+    const row = makeRow()
+    const { entries, errors } = parseAppCsv([V1_HEADER, row].join('\n'))
+    expect(errors).toHaveLength(0)
+    expect(entries[0].tummyTimeDurationSeconds).toBeNull()
+  })
+
+  it('v2 file (20 cols) parses duration correctly', () => {
+    const row = makeRow() + ',330'
+    const { entries, errors } = parseAppCsv([V2_HEADER, row].join('\n'))
+    expect(errors).toHaveLength(0)
+    expect(entries[0].tummyTimeDurationSeconds).toBe(330)
+  })
+
+  it('v2 file with blank duration gives null', () => {
+    const row = makeRow() + ','
+    const { entries } = parseAppCsv([V2_HEADER, row].join('\n'))
+    expect(entries[0].tummyTimeDurationSeconds).toBeNull()
+  })
+
+  it('v2 file with non-numeric duration gives null', () => {
+    const row = makeRow() + ',abc'
+    const { entries } = parseAppCsv([V2_HEADER, row].join('\n'))
+    expect(entries[0].tummyTimeDurationSeconds).toBeNull()
+  })
+})
+
 // ── timestamp fields ────────────────────────────────────────────────────────
 
 describe('parseAppCsv — timestamp fields', () => {

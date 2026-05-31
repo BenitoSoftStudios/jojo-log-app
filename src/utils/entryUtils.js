@@ -7,6 +7,26 @@ export function getTummyTimeCount(entry) {
 }
 
 /**
+ * Returns true if the entry has any tummy time session recorded.
+ * Normalizes historical multiplier values — tummyTimeCount > 0 counts as one session.
+ */
+export function hasTummyTimeSession(entry) {
+  return !!(entry.tummyTime || (entry.tummyTimeCount ?? 0) > 0)
+}
+
+/**
+ * Format tummy time duration seconds into a compact human-readable string.
+ * Returns null if seconds is falsy or zero.
+ */
+export function formatTummyDuration(seconds) {
+  if (!seconds || seconds <= 0) return null
+  const m = Math.floor(seconds / 60)
+  const s = seconds % 60
+  if (s === 0) return `${m}m`
+  return `${m}m ${s}s`
+}
+
+/**
  * An entry is Incomplete when amountMl is null OR diaper is null.
  * 0 mL is valid (not incomplete). "-" diaper is valid (not incomplete).
  */

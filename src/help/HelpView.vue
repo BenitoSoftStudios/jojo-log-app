@@ -46,7 +46,7 @@
         </div>
         <div class="legend-row">
           <dt class="legend-key">★</dt>
-          <dd class="legend-val">Tummy time — tap to cycle the count up. Tap again to reset.</dd>
+          <dd class="legend-val">Tummy time — tap the star to mark a session and optionally record how long it lasted.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">Notes</dt>

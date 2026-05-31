@@ -203,7 +203,7 @@
     <!-- Hamburger menu sheet -->
     <AppSheet v-model="menuOpen" title="Menu">
       <nav class="menu-nav">
-        <router-link class="menu-item" to="/graphs"            @click="menuOpen = false">Graph</router-link>
+        <router-link class="menu-item" to="/graphs"            @click="menuOpen = false">Trends</router-link>
         <router-link class="menu-item" to="/recently-deleted"  @click="menuOpen = false">Recently Deleted</router-link>
         <router-link class="menu-item" to="/manage-caregivers" @click="menuOpen = false">Manage Caregivers</router-link>
         <router-link v-if="isOwner" class="menu-item" to="/invite" @click="menuOpen = false">Invite member</router-link>

@@ -98,13 +98,13 @@ describe('computeDailyStats', () => {
     expect(result[0].feedCount).toBe(0)
   })
 
-  it('sums tummyTimeCount across multiple entries', () => {
+  it('counts each entry with tummyTimeCount > 0 as one session', () => {
     const entries = [
       makeEntry('e1', '2026-05-30', { tummyTimeCount: 3 }),
       makeEntry('e2', '2026-05-30', { tummyTimeCount: 2 }),
     ]
     const result = computeDailyStats(entries, '2026-05-30', '2026-05-30')
-    expect(result[0].tummyCount).toBe(5)
+    expect(result[0].tummyCount).toBe(2)
   })
 
   it('falls back to legacy tummyTime boolean (1 session per entry)', () => {

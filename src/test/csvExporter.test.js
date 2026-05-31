@@ -72,10 +72,10 @@ const baseEntry = {
 
 describe('buildCsvRow', () => {
   it('returns correct number of comma-separated fields', () => {
-    // 19 columns; notes is empty, no quoting needed
+    // 20 columns; notes is empty, no quoting needed
     const row = buildCsvRow(baseEntry, 'Jojo', {})
     const cols = row.split(',')
-    expect(cols).toHaveLength(19)
+    expect(cols).toHaveLength(20)
   })
 
   it('includes babyNickname as first field', () => {
@@ -92,13 +92,26 @@ describe('buildCsvRow', () => {
     const weeklyAmounts = { '2026-05-11': 150 }
     const row = buildCsvRow(baseEntry, 'Jojo', weeklyAmounts)
     const cols = row.split(',')
-    expect(cols[cols.length - 1]).toBe('150')
+    expect(cols[18]).toBe('150')
   })
 
   it('outputs empty usualBottleAmountMl when week not in map', () => {
     const row = buildCsvRow(baseEntry, 'Jojo', {})
     const cols = row.split(',')
-    expect(cols[cols.length - 1]).toBe('')
+    expect(cols[18]).toBe('')
+  })
+
+  it('outputs tummyTimeDurationSeconds as last column', () => {
+    const entry = { ...baseEntry, tummyTimeDurationSeconds: 330 }
+    const row = buildCsvRow(entry, 'Jojo', {})
+    const cols = row.split(',')
+    expect(cols[19]).toBe('330')
+  })
+
+  it('outputs empty tummyTimeDurationSeconds when null', () => {
+    const row = buildCsvRow(baseEntry, 'Jojo', {})
+    const cols = row.split(',')
+    expect(cols[19]).toBe('')
   })
 
   it('quotes notes containing comma', () => {
@@ -156,7 +169,7 @@ describe('generateCsv', () => {
     const csv = generateCsv([], 'Jojo', {})
     const firstLine = csv.split('\r\n')[0]
     expect(firstLine).toBe(
-      'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl'
+      'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl,tummyTimeDurationSeconds'
     )
   })
 

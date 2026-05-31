@@ -6,6 +6,7 @@ const HEADERS = [
   'tummyTimeCount', 'notes', 'source', 'createdByLabel',
   'createdAt', 'updatedByLabel', 'updatedAt',
   'deleted', 'deletedAt', 'weekStartDate', 'usualBottleAmountMl',
+  'tummyTimeDurationSeconds',
 ]
 
 export function escapeCell(val) {
@@ -47,6 +48,7 @@ export function buildCsvRow(entry, babyNickname, weeklyAmounts) {
     toIso(entry.deletedAt),
     weekStart,
     usualBottle,
+    entry.tummyTimeDurationSeconds ?? '',
   ]
   return values.map(escapeCell).join(',')
 }

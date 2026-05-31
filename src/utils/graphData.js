@@ -60,7 +60,7 @@ export function computeDailyStats(entries, startDate, endDate) {
       row.totalMl += e.amountMl
       if (e.amountMl > 0) row.feedCount++
     }
-    row.tummyCount += e.tummyTimeCount ?? (e.tummyTime ? 1 : 0)
+    row.tummyCount += ((e.tummyTimeCount ?? 0) > 0 || e.tummyTime) ? 1 : 0
   }
 
   return dates.map(d => byDate[d])

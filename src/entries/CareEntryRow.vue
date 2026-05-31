@@ -1,9 +1,10 @@
 <!-- Inline-editable entry row. Each field saves immediately on change/blur.
-     Layout: two lines.
+     Layout: two lines + optional tummy time form.
        Line 1: incomplete dot · time · mL · diaper selector (W P WP -) · details button
-       Line 2: symbol toggles ☀ Rx ★+N · notes indicator · save feedback
+       Line 2: symbol toggles ☀ Rx ★ · notes indicator · save feedback
+       Line 3: tummy time duration form (shown when star is tapped)
      Notes are not shown inline — see EntryDetailSheet.
-     Tummy time: count model (0–9); tap cycles; +N badge when active. -->
+     Tummy time: single-session toggle; tapping opens a duration prompt. -->
 <template>
   <div class="entry-row" :class="{ 'entry-row--incomplete': incomplete }">
 
@@ -71,7 +72,7 @@
     <!-- ── Line 2: symbol toggles ─────────────────────────────────────── -->
     <div class="entry-row__line2">
 
-      <!-- Vitamin D — gold when on; SVG sun scales with visual weight of Rx/★ -->
+      <!-- Vitamin D — gold when on -->
       <button
         class="sym-btn"
         :class="{ 'sym-btn--vitd-on': entry.vitaminD }"
@@ -94,14 +95,14 @@
         @click="emitUpdate({ medication: !entry.medication })"
       >Rx</button>
 
-      <!-- Tummy Time — lavender star + count badge; cycles 0–9 then back to 0 -->
+      <!-- Tummy Time — tap to open duration form -->
       <button
         class="sym-btn sym-btn--tt"
-        :class="{ 'sym-btn--tt-on': tummyTimeCount > 0 }"
+        :class="{ 'sym-btn--tt-on': tummyActive }"
         type="button"
-        :aria-label="`Tummy time: ${tummyTimeCount} — tap to cycle`"
-        @click="onTummyTap"
-      >★<span v-if="tummyTimeCount > 0" class="tt-badge">+{{ tummyTimeCount }}</span></button>
+        :aria-label="tummyActive ? 'Tummy time recorded — tap to edit' : 'Tummy time — tap to record'"
+        @click="openTtForm"
+      >★<span v-if="tummyDuration" class="tt-dur">{{ tummyDuration }}</span></button>
 
       <!-- Notes compact indicator — tapping opens the detail sheet -->
       <button
@@ -122,12 +123,44 @@
 
     </div>
 
+    <!-- ── Line 3: Tummy Time duration form ──────────────────────────── -->
+    <div v-if="ttFormOpen" class="tt-form">
+      <span class="tt-form-label text-soft text-xs">How long?</span>
+      <div class="tt-inputs">
+        <input
+          v-model.number="ttMinutes"
+          class="tt-input"
+          type="number"
+          min="0"
+          max="99"
+          inputmode="numeric"
+          placeholder="0"
+        />
+        <span class="tt-input-unit text-faint text-xs">m</span>
+        <input
+          v-model.number="ttSeconds"
+          class="tt-input"
+          type="number"
+          min="0"
+          max="59"
+          inputmode="numeric"
+          placeholder="0"
+        />
+        <span class="tt-input-unit text-faint text-xs">s</span>
+      </div>
+      <div class="tt-form-btns">
+        <button class="tt-btn tt-btn--save" type="button" @click="saveTt">Save</button>
+        <button v-if="tummyActive" class="tt-btn tt-btn--clear" type="button" @click="clearTt">Clear</button>
+        <button class="tt-btn tt-btn--cancel" type="button" @click="cancelTt">✕</button>
+      </div>
+    </div>
+
   </div>
 </template>
 
 <script setup>
 import { computed, ref, watch } from 'vue'
-import { isIncomplete, getTummyTimeCount } from '@/utils/entryUtils.js'
+import { isIncomplete, hasTummyTimeSession, formatTummyDuration } from '@/utils/entryUtils.js'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -141,10 +174,11 @@ const DIAPER_OPTIONS = [
   { value: '-',  display: '-',  label: 'No diaper change' },
 ]
 
-const incomplete     = computed(() => isIncomplete(props.entry))
-const tummyTimeCount = computed(() => getTummyTimeCount(props.entry))
-const hasNotes  = computed(() => !!(props.entry.notes))
-const mlDisplay = computed(() => props.entry.amountMl ?? '')
+const incomplete   = computed(() => isIncomplete(props.entry))
+const tummyActive  = computed(() => hasTummyTimeSession(props.entry))
+const tummyDuration = computed(() => formatTummyDuration(props.entry.tummyTimeDurationSeconds))
+const hasNotes     = computed(() => !!(props.entry.notes))
+const mlDisplay    = computed(() => props.entry.amountMl ?? '')
 
 // ── Save feedback ──────────────────────────────────────────────────────────
 
@@ -182,11 +216,6 @@ function selectDiaper(value) {
   emitUpdate({ diaper: value })
 }
 
-function onTummyTap() {
-  const next = tummyTimeCount.value >= 9 ? 0 : tummyTimeCount.value + 1
-  emitUpdate({ tummyTimeCount: next })
-}
-
 function onTimeBlur(e) {
   const val = e.target.value
   if (val && val !== props.entry.entryTime) {
@@ -206,6 +235,48 @@ function onMlBlur(e) {
       emitUpdate({ amountMl: n })
     }
   }
+}
+
+// ── Tummy Time form ────────────────────────────────────────────────────────
+
+const ttFormOpen = ref(false)
+const ttMinutes  = ref(0)
+const ttSeconds  = ref(0)
+
+function openTtForm() {
+  if (ttFormOpen.value) {
+    ttFormOpen.value = false
+    return
+  }
+  const existing  = props.entry.tummyTimeDurationSeconds ?? 0
+  ttMinutes.value = Math.floor(existing / 60)
+  ttSeconds.value = existing % 60
+  ttFormOpen.value = true
+}
+
+function saveTt() {
+  const mins  = Math.max(0, Number(ttMinutes.value) || 0)
+  const secs  = Math.max(0, Math.min(59, Number(ttSeconds.value) || 0))
+  const total = mins * 60 + secs
+  emitUpdate({
+    tummyTime:                true,
+    tummyTimeCount:           1,
+    tummyTimeDurationSeconds: total > 0 ? total : null,
+  })
+  ttFormOpen.value = false
+}
+
+function clearTt() {
+  emitUpdate({
+    tummyTime:                false,
+    tummyTimeCount:           0,
+    tummyTimeDurationSeconds: null,
+  })
+  ttFormOpen.value = false
+}
+
+function cancelTt() {
+  ttFormOpen.value = false
 }
 </script>
 
@@ -321,12 +392,10 @@ function onMlBlur(e) {
               color var(--duration-fast);
 }
 
-/* WP needs a bit more room for 2 characters */
 .diaper-btn:nth-child(3) {
   min-width: 32px;
 }
 
-/* Active states — colour-coded per value */
 .diaper-btn--active-w {
   background: #d4eaf5;
   border-color: var(--color-diaper-w);
@@ -383,7 +452,6 @@ function onMlBlur(e) {
   align-items: center;
   gap: var(--space-1);
   padding: var(--space-1) var(--space-3) var(--space-2);
-  /* indent to align with line 1 content (past dot area) */
   padding-left: calc(var(--space-3) + 10px + var(--space-2));
 }
 
@@ -408,7 +476,6 @@ function onMlBlur(e) {
   transition: color var(--duration-fast);
 }
 
-/* Inline SVG sun — sized to match Rx/★ visual weight */
 .sun-icon {
   width: 15px;
   height: 15px;
@@ -416,27 +483,25 @@ function onMlBlur(e) {
   flex-shrink: 0;
 }
 
-/* Vitamin D — gold when active */
 .sym-btn--vitd-on {
   color: var(--color-gold);
 }
 
-/* Medication — mint when active */
 .sym-btn--med-on {
   color: var(--color-mint);
   font-weight: var(--font-weight-semibold);
 }
 
-/* Tummy time — lavender when active */
 .sym-btn--tt-on {
   color: var(--color-lavender);
   font-weight: var(--font-weight-semibold);
 }
 
-.tt-badge {
+.tt-dur {
   font-size: 9px;
   font-weight: var(--font-weight-semibold);
   line-height: 1;
+  margin-left: 1px;
 }
 
 .sym-notes {
@@ -452,7 +517,6 @@ function onMlBlur(e) {
   touch-action: manipulation;
 }
 
-/* Save feedback */
 .sym-save {
   margin-left: auto;
   font-size: var(--font-size-xs);
@@ -462,4 +526,82 @@ function onMlBlur(e) {
 .sym-save--saving { color: var(--color-text-faint); }
 .sym-save--saved  { color: var(--color-success); }
 .sym-save--error  { color: var(--color-error); }
+
+/* ── Line 3: Tummy Time form ──────────────────────────────────────────── */
+
+.tt-form {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  padding-left: calc(var(--space-3) + 10px + var(--space-2));
+  background: var(--color-lavender-soft);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+.tt-form-label {
+  flex-shrink: 0;
+}
+
+.tt-inputs {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.tt-input {
+  width: 38px;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  color: var(--color-text);
+  padding: 2px 4px;
+  text-align: center;
+  -moz-appearance: textfield;
+}
+.tt-input::-webkit-inner-spin-button,
+.tt-input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+}
+
+.tt-input-unit {
+  line-height: 1;
+}
+
+.tt-form-btns {
+  display: flex;
+  gap: var(--space-1);
+  margin-left: auto;
+}
+
+.tt-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  font-size: var(--font-size-xs);
+  padding: var(--space-1) var(--space-2);
+  border-radius: var(--radius-sm);
+  min-height: 28px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.tt-btn--save {
+  background: var(--color-lavender);
+  color: #fff;
+  font-weight: var(--font-weight-medium);
+}
+
+.tt-btn--clear {
+  color: var(--color-text-faint);
+  border: 1px solid var(--color-border);
+}
+
+.tt-btn--cancel {
+  color: var(--color-text-faint);
+}
 </style>

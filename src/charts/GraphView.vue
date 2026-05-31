@@ -43,9 +43,14 @@
         </div>
       </div>
 
-      <p v-if="dailyStats.length > 0" class="disclaimer text-faint text-xs">
-        Descriptive log only. Not feeding guidance.
-      </p>
+      <!-- Explanatory banner -->
+      <div v-if="dailyStats.length > 0" class="trends-banner">
+        <p class="trends-banner-body text-soft text-sm">
+          Trends summarizes what was logged for this baby: daily volume, feed count, and Tummy Time.
+          Tap a Daily volume bar to inspect a day.
+        </p>
+        <p class="trends-banner-note text-faint text-xs">Descriptive log only. Not feeding guidance.</p>
+      </div>
 
       <!-- No entries -->
       <div v-if="dailyStats.length === 0" class="empty-state">
@@ -78,6 +83,9 @@
 
           <div class="chart-scroll">
             <svg :width="svgWidth" height="175" class="chart-svg">
+              <!-- Y-axis scale hint: max value at top-left -->
+              <text v-if="chartMlMax > 0" x="3" y="12" class="chart-axis-label">{{ chartMlMax }} mL</text>
+
               <!-- Column highlights: today (subtle) + selected (mint) -->
               <template v-for="(row, i) in chartRows" :key="`hl-${i}`">
                 <rect
@@ -154,6 +162,8 @@
           <p v-if="chartFeedMax === 0" class="text-faint text-xs chart-empty-note">No feeds recorded.</p>
           <div v-else class="chart-scroll">
             <svg :width="svgWidth" :height="compactSvgH" class="chart-svg">
+              <!-- Y-axis scale hint -->
+              <text v-if="chartFeedMax > 0" x="3" y="10" class="chart-axis-label">{{ chartFeedMax }}</text>
               <line x1="0" :x2="svgWidth" :y1="CT_FLOOR" :y2="CT_FLOOR" class="chart-baseline" />
               <template v-for="(row, i) in chartRows" :key="`fb-${i}`">
                 <rect
@@ -166,7 +176,7 @@
               </template>
               <template v-for="(row, i) in chartRows" :key="`fdl-${i}`">
                 <text
-                  v-if="showBelowLabels && showChartLabel(i)"
+                  v-if="showChartLabel(i)"
                   :x="i * colWidth + colWidth / 2"
                   :y="CT_FLOOR + 14"
                   text-anchor="middle"
@@ -183,6 +193,8 @@
           <p v-if="chartTummyMax === 0" class="text-faint text-xs chart-empty-note">No sessions recorded.</p>
           <div v-else class="chart-scroll">
             <svg :width="svgWidth" :height="compactSvgH" class="chart-svg">
+              <!-- Y-axis scale hint -->
+              <text v-if="chartTummyMax > 0" x="3" y="10" class="chart-axis-label">{{ chartTummyMax }}</text>
               <line x1="0" :x2="svgWidth" :y1="CT_FLOOR" :y2="CT_FLOOR" class="chart-baseline" />
               <template v-for="(row, i) in chartRows" :key="`tb-${i}`">
                 <rect
@@ -195,7 +207,7 @@
               </template>
               <template v-for="(row, i) in chartRows" :key="`tdl-${i}`">
                 <text
-                  v-if="showBelowLabels && showChartLabel(i)"
+                  v-if="showChartLabel(i)"
                   :x="i * colWidth + colWidth / 2"
                   :y="CT_FLOOR + 14"
                   text-anchor="middle"
@@ -407,8 +419,7 @@ const barPad    = computed(() => Math.max(2, Math.round(colWidth.value * 0.1)))
 const barInnerW = computed(() => Math.max(1, colWidth.value - barPad.value * 2))
 
 // Show date labels below compact charts in monthly mode or long daily ranges
-const showBelowLabels = computed(() => useMonthlyView.value || dailyStats.value.length > 30)
-const compactSvgH     = computed(() => showBelowLabels.value ? 90 : 72)
+const compactSvgH = 90  // always include room for x-axis labels
 
 // ── Bar height functions ────────────────────────────────────────────────────
 
@@ -559,12 +570,19 @@ function formatDayLabel(dateStr) {
   margin-top: 2px;
 }
 
-/* ── Disclaimer ──────────────────────────────────────────────────────────── */
+/* ── Explanatory banner ──────────────────────────────────────────────────── */
 
-.disclaimer {
-  text-align: center;
-  margin-top: calc(-1 * var(--space-2));
+.trends-banner {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
 }
+.trends-banner-body { margin: 0; line-height: 1.5; }
+.trends-banner-note { margin: 0; }
 
 /* ── Chart cards ─────────────────────────────────────────────────────────── */
 
