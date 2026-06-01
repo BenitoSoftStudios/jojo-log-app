@@ -4,8 +4,7 @@
 <template>
   <AppLayout>
     <template #header>
-      <router-link class="back-btn" to="/" aria-label="Back">←</router-link>
-      <span class="header-title">Manage Caregivers</span>
+      <SecondaryHeader title="Manage Caregivers" />
     </template>
 
     <AppCard>
@@ -143,6 +142,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import AppLayout from '@/ui/AppLayout.vue'
+import SecondaryHeader from '@/ui/SecondaryHeader.vue'
 import AppCard from '@/ui/AppCard.vue'
 import { currentUser } from '@/auth/useAuth.js'
 import { useFamily } from '@/families/useFamily.js'
@@ -304,18 +304,6 @@ async function reactivateMember(m) {
 </script>
 
 <style scoped>
-.back-btn {
-  color: var(--color-text-soft);
-  text-decoration: none;
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-}
 
 .section-heading {
   font-size: var(--font-size-base);

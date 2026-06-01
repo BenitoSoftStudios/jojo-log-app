@@ -27,29 +27,13 @@
   z-index: 100;
   background: var(--color-bg);
   border-bottom: 1px solid var(--color-border);
-  /* Push content below browser chrome / notch */
-  padding-top: env(safe-area-inset-top, 0);
+  height: var(--header-height);
 }
 
-/* Content area sits in fixed-height band below safe area */
 .header-inner {
   display: flex;
   align-items: center;
-  height: var(--header-height);
-  gap: var(--space-3);
-}
-
-/* Standardize back-button tap target across all secondary pages.
-   Each page styles its own .back-btn colours; this adds the 44×44 minimum. */
-:deep(.back-btn) {
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: var(--radius-sm);
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
+  height: 100%;
 }
 
 .app-main {

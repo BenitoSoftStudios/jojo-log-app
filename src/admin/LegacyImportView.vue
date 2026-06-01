@@ -2,8 +2,7 @@
 <template>
   <AppLayout>
     <template #header>
-      <router-link class="back-btn" to="/" aria-label="Back">←</router-link>
-      <span class="header-title">Import CSV</span>
+      <SecondaryHeader title="Import CSV" />
     </template>
 
     <!-- Admin gate -->
@@ -153,6 +152,7 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/ui/AppLayout.vue'
+import SecondaryHeader from '@/ui/SecondaryHeader.vue'
 import { useFamily } from '@/families/useFamily.js'
 import { useBabies } from '@/babies/useBabies.js'
 import { parseAppCsv, checkForExistingIds } from '@/utils/appCsvImporter.js'
@@ -262,18 +262,6 @@ async function handleImport() {
 </script>
 
 <style scoped>
-.back-btn {
-  color: var(--color-text-soft);
-  text-decoration: none;
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-}
 
 /* ── Gate ──────────────────────────────────────────────────────────────────── */
 

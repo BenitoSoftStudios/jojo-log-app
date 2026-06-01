@@ -2,8 +2,7 @@
 <template>
   <AppLayout>
     <template #header>
-      <router-link class="back-btn" to="/" aria-label="Back">←</router-link>
-      <span class="header-title">Invite Member</span>
+      <SecondaryHeader title="Invite Member" />
     </template>
 
     <AppCard>
@@ -56,6 +55,7 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout from '@/ui/AppLayout.vue'
+import SecondaryHeader from '@/ui/SecondaryHeader.vue'
 import AppCard from '@/ui/AppCard.vue'
 import AppButton from '@/ui/AppButton.vue'
 import { useFamily } from '@/families/useFamily.js'
@@ -147,18 +147,6 @@ async function handleRevoke(inv) {
 </script>
 
 <style scoped>
-.back-btn {
-  color: var(--color-text-soft);
-  text-decoration: none;
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-}
 
 .state-msg {
   padding: var(--space-3) 0;

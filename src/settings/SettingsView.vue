@@ -2,8 +2,7 @@
 <template>
   <AppLayout>
     <template #header>
-      <router-link class="back-btn" to="/" aria-label="Back">←</router-link>
-      <span class="header-title">Settings</span>
+      <SecondaryHeader title="Settings" />
     </template>
 
     <AppCard>
@@ -48,6 +47,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import AppLayout from '@/ui/AppLayout.vue'
+import SecondaryHeader from '@/ui/SecondaryHeader.vue'
 import AppCard from '@/ui/AppCard.vue'
 import AppButton from '@/ui/AppButton.vue'
 import { useFamily } from '@/families/useFamily.js'
@@ -99,18 +99,6 @@ async function saveTimezone() {
 </script>
 
 <style scoped>
-.back-btn {
-  color: var(--color-text-soft);
-  text-decoration: none;
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-}
 
 .section-heading {
   font-size: var(--font-size-base);

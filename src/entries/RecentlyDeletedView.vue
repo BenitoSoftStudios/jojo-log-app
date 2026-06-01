@@ -2,8 +2,7 @@
 <template>
   <AppLayout>
     <template #header>
-      <router-link class="back-btn" to="/" aria-label="Back">←</router-link>
-      <span class="header-title">Recently Deleted</span>
+      <SecondaryHeader title="Recently Deleted" />
     </template>
 
     <p class="section-desc text-soft text-sm">
@@ -51,6 +50,7 @@
 <script setup>
 import { ref } from 'vue'
 import AppLayout from '@/ui/AppLayout.vue'
+import SecondaryHeader from '@/ui/SecondaryHeader.vue'
 import { useEntries } from '@/entries/useEntries.js'
 import { useFamily }  from '@/families/useFamily.js'
 
@@ -80,18 +80,6 @@ async function handleRestore(entryId) {
 </script>
 
 <style scoped>
-.back-btn {
-  color: var(--color-text-soft);
-  text-decoration: none;
-  font-size: var(--font-size-lg);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.header-title {
-  font-weight: var(--font-weight-semibold);
-  font-size: var(--font-size-md);
-}
 
 .section-desc {
   margin-bottom: var(--space-4);
