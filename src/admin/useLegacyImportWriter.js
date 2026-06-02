@@ -108,21 +108,23 @@ export async function writeAppCsvEntries(entries, onProgress) {
 
     for (const entry of chunk) {
       batch.set(doc(entriesCol, entry.id), {
-        entryDate:      entry.entryDate,
-        entryTime:      entry.entryTime      ?? null,
-        amountMl:       entry.amountMl,
-        diaper:         entry.diaper,
-        vitaminD:       entry.vitaminD       ?? false,
-        medication:     entry.medication     ?? false,
-        tummyTimeCount: entry.tummyTimeCount ?? 0,
-        notes:          entry.notes          ?? '',
-        source:         entry.source         ?? null,
-        createdByLabel: entry.createdByLabel ?? null,
-        createdAt:      entry.createdAt      ?? null,
-        updatedByLabel: entry.updatedByLabel ?? null,
-        updatedAt:      entry.updatedAt      ?? null,
-        deleted:        entry.deleted        ?? false,
-        deletedAt:      entry.deletedAt      ?? null,
+        entryDate:                entry.entryDate,
+        entryTime:                entry.entryTime                ?? null,
+        amountMl:                 entry.amountMl,
+        diaper:                   entry.diaper,
+        vitaminD:                 entry.vitaminD                ?? false,
+        medication:               entry.medication              ?? false,
+        medicationNote:           entry.medicationNote          ?? null,
+        tummyTimeCount:           entry.tummyTimeCount          ?? 0,
+        tummyTimeDurationSeconds: entry.tummyTimeDurationSeconds ?? null,
+        notes:                    entry.notes                   ?? '',
+        source:                   entry.source                  ?? null,
+        createdByLabel:           entry.createdByLabel          ?? null,
+        createdAt:                entry.createdAt               ?? null,
+        updatedByLabel:           entry.updatedByLabel          ?? null,
+        updatedAt:                entry.updatedAt               ?? null,
+        deleted:                  entry.deleted                 ?? false,
+        deletedAt:                entry.deletedAt               ?? null,
       })
     }
 

@@ -405,3 +405,107 @@ describe('checkForExistingIds', () => {
     expect(result.newCount).toBe(2)
   })
 })
+
+// ── special characters: medicationNote ─────────────────────────────────────
+
+const V3_HDR = 'babyNickname,entryId,entryDate,entryTime,amountMl,diaper,vitaminD,medication,tummyTimeCount,notes,source,createdByLabel,createdAt,updatedByLabel,updatedAt,deleted,deletedAt,weekStartDate,usualBottleAmountMl,tummyTimeDurationSeconds,medicationNote'
+
+function makeV3Row(medNote = '') {
+  const base = [
+    'TestBaby', 'rt-1', '2026-04-01', '09:00', '120', 'W', 'false', 'true',
+    '0', '', 'app', 'Tester', '', '', '', 'false', '', '2026-03-31', '120', '',
+  ]
+  const escaped = medNote.includes('"') || medNote.includes(',') || medNote.includes('\n')
+    ? '"' + medNote.replace(/"/g, '""') + '"'
+    : medNote
+  return base.join(',') + ',' + escaped
+}
+
+describe('parseAppCsv — medicationNote special characters', () => {
+  it('preserves medicationNote with comma', () => {
+    const { entries } = parseAppCsv([V3_HDR, makeV3Row('Tylenol, 2.5 mL')].join('\n'))
+    expect(entries[0].medicationNote).toBe('Tylenol, 2.5 mL')
+  })
+
+  it('preserves medicationNote with double quote', () => {
+    const { entries } = parseAppCsv([V3_HDR, makeV3Row('say "hi"')].join('\n'))
+    expect(entries[0].medicationNote).toBe('say "hi"')
+  })
+
+  it('preserves medicationNote with embedded newline', () => {
+    const { entries } = parseAppCsv([V3_HDR, makeV3Row('line1\nline2')].join('\n'))
+    expect(entries[0].medicationNote).toBe('line1\nline2')
+  })
+})
+
+// ── special characters: notes ───────────────────────────────────────────────
+
+function makeRowWithQuotedNotes(notesValue) {
+  const escaped = notesValue.includes('"') || notesValue.includes(',') || notesValue.includes('\n')
+    ? '"' + notesValue.replace(/"/g, '""') + '"'
+    : notesValue
+  const cols = [
+    'TestBaby', 'rn-1', '2026-04-01', '09:00', '120', 'W', 'false', 'false',
+    '0', escaped, 'app', 'Tester', '', '', '', 'false', '', '2026-03-31', '120',
+  ]
+  return cols.join(',')
+}
+
+describe('parseAppCsv — notes special characters', () => {
+  it('preserves notes with comma', () => {
+    const { entries } = parseAppCsv([HEADER, makeRowWithQuotedNotes('fussy, tired')].join('\n'))
+    expect(entries[0].notes).toBe('fussy, tired')
+  })
+
+  it('preserves notes with double quote', () => {
+    const { entries } = parseAppCsv([HEADER, makeRowWithQuotedNotes('said "hi"')].join('\n'))
+    expect(entries[0].notes).toBe('said "hi"')
+  })
+
+  it('preserves notes with embedded newline', () => {
+    const { entries } = parseAppCsv([HEADER, makeRowWithQuotedNotes('first line\nsecond line')].join('\n'))
+    expect(entries[0].notes).toBe('first line\nsecond line')
+  })
+})
+
+// ── duplicate detection after schema changes ────────────────────────────────
+
+describe('duplicate detection with optional fields', () => {
+  it('flags re-imported rows by ID regardless of medicationNote', () => {
+    const entry = makeRow({ entryId: 'dup-check-1', medication: 'true' })
+    const v3Row = entry + ',,Tylenol'
+    const { entries } = parseAppCsv([V3_HDR, v3Row].join('\n'))
+    const dupResult = checkForExistingIds(entries, new Set(['dup-check-1']))
+    expect(dupResult.overlapCount).toBe(1)
+    expect(dupResult.overlapIds).toEqual(['dup-check-1'])
+  })
+
+  it('flags re-imported rows by ID regardless of tummyTimeDurationSeconds', () => {
+    const v3Row = makeRow({ entryId: 'dup-check-2' }) + ',90,'
+    const { entries } = parseAppCsv([V3_HDR, v3Row].join('\n'))
+    const dupResult = checkForExistingIds(entries, new Set(['dup-check-2']))
+    expect(dupResult.overlapCount).toBe(1)
+  })
+})
+
+// ── wrong-baby blocking (pure utility level) ────────────────────────────────
+
+describe('wrong-baby detection', () => {
+  it('reports mismatch when CSV has a different baby name', () => {
+    const { preview } = parseAppCsv(csv(makeRow({ entryId: 'e1', babyNickname: 'OtherBaby' })))
+    expect(preview.babyNames).toContain('OtherBaby')
+  })
+
+  it('reports hasBlankBabyName when any row has blank name', () => {
+    const { preview } = parseAppCsv(csv(makeRow({ entryId: 'e1', babyNickname: '' })))
+    expect(preview.hasBlankBabyName).toBe(true)
+  })
+
+  it('reports multiple distinct names when CSV mixes baby names', () => {
+    const { preview } = parseAppCsv(csv(
+      makeRow({ entryId: 'e1', babyNickname: 'Alpha' }),
+      makeRow({ entryId: 'e2', babyNickname: 'Beta' }),
+    ))
+    expect(preview.babyNames).toEqual(['Alpha', 'Beta'])
+  })
+})

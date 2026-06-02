@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest'
 import { escapeCell, buildCsvRow, generateCsv } from '@/utils/csvExporter.js'
+import { parseAppCsv } from '@/utils/appCsvImporter.js'
 
 describe('escapeCell', () => {
   it('returns empty string for null', () => {
@@ -199,5 +200,59 @@ describe('generateCsv', () => {
   it('uses CRLF line endings', () => {
     const csv = generateCsv([baseEntry], 'Jojo', {})
     expect(csv).toContain('\r\n')
+  })
+})
+
+// ── Round-trip: generateCsv → parseAppCsv ──────────────────────────────────
+
+describe('round-trip: generateCsv → parseAppCsv', () => {
+  function roundTrip(entry) {
+    const csv = generateCsv([entry], 'TestBaby', {})
+    const { entries, errors } = parseAppCsv(csv)
+    expect(errors).toHaveLength(0)
+    return entries[0]
+  }
+
+  it('medicationNote with comma survives export/import', () => {
+    const entry = { ...baseEntry, medicationNote: 'Tylenol, 2.5 mL' }
+    expect(roundTrip(entry).medicationNote).toBe('Tylenol, 2.5 mL')
+  })
+
+  it('medicationNote with double quote survives export/import', () => {
+    const entry = { ...baseEntry, medicationNote: 'say "hi"' }
+    expect(roundTrip(entry).medicationNote).toBe('say "hi"')
+  })
+
+  it('medicationNote with embedded newline survives export/import', () => {
+    const entry = { ...baseEntry, medicationNote: 'line1\nline2' }
+    expect(roundTrip(entry).medicationNote).toBe('line1\nline2')
+  })
+
+  it('notes with comma survive export/import', () => {
+    const entry = { ...baseEntry, notes: 'fussy, tired' }
+    expect(roundTrip(entry).notes).toBe('fussy, tired')
+  })
+
+  it('notes with double quote survive export/import', () => {
+    const entry = { ...baseEntry, notes: 'said "bye"' }
+    expect(roundTrip(entry).notes).toBe('said "bye"')
+  })
+
+  it('notes with embedded newline survive export/import', () => {
+    const entry = { ...baseEntry, notes: 'first line\nsecond line' }
+    expect(roundTrip(entry).notes).toBe('first line\nsecond line')
+  })
+
+  it('tummyTimeDurationSeconds survives export/import', () => {
+    const entry = { ...baseEntry, tummyTimeDurationSeconds: 150 }
+    expect(roundTrip(entry).tummyTimeDurationSeconds).toBe(150)
+  })
+
+  it('blank tummyTimeDurationSeconds imports as null', () => {
+    expect(roundTrip(baseEntry).tummyTimeDurationSeconds).toBeNull()
+  })
+
+  it('blank medicationNote imports as null', () => {
+    expect(roundTrip(baseEntry).medicationNote).toBeNull()
   })
 })
