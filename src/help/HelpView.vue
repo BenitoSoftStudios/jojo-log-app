@@ -236,7 +236,7 @@
       <ul class="help-list text-sm">
         <li>If the baby name in the CSV doesn't match the active baby, import is blocked.</li>
         <li>Duplicate entries are detected and blocked before any data is written.</li>
-        <li>The import tool is admin-only.</li>
+        <li>The import tool is owner-only.</li>
       </ul>
     </AppCard>
 
