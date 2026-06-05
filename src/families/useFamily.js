@@ -17,10 +17,6 @@ export const familyTimezone  = computed(() => _family.value?.timezone ?? 'Americ
 export function useFamily() {
   const familyId              = computed(() => _family.value?.id ?? null)
   const isOwner               = computed(() => _currentMember.value?.role === 'owner')
-  const isLegacyImportAdmin   = computed(() =>
-    _currentMember.value?.role === 'owner' &&
-    _currentMember.value?.legacyImportAdmin === true
-  )
   const hasDisplayLabel       = computed(() => !!_currentMember.value?.displayLabel)
 
   async function loadFamily(uid) {
@@ -87,7 +83,6 @@ export function useFamily() {
     familyId,
     familyTimezone,
     isOwner,
-    isLegacyImportAdmin,
     hasDisplayLabel,
     loading: readonly(_loading),
     error:   readonly(_error),

@@ -1,13 +1,13 @@
-<!-- Admin-only: Import CSV tool. Accepts Jojo app export CSV format only. -->
+<!-- Owner-only: Import CSV tool. Accepts Jojo app export CSV format only. -->
 <template>
   <AppLayout>
     <template #header>
       <SecondaryHeader title="Import CSV" />
     </template>
 
-    <!-- Admin gate -->
-    <div v-if="!isLegacyImportAdmin" class="gate-denied">
-      <p class="gate-denied__msg text-sm">Access denied. Admin only.</p>
+    <!-- Owner gate -->
+    <div v-if="!isOwner" class="gate-denied">
+      <p class="gate-denied__msg text-sm">Only owners can import CSV backups.</p>
       <router-link class="gate-denied__link text-sm" to="/">← Back to ledger</router-link>
     </div>
 
@@ -161,11 +161,11 @@ import { entries, deletedEntries }          from '@/entries/useEntries.js'
 
 const router = useRouter()
 
-const { isLegacyImportAdmin } = useFamily()
-const { activeBaby }          = useBabies()
+const { isOwner }  = useFamily()
+const { activeBaby } = useBabies()
 
 onMounted(() => {
-  if (!isLegacyImportAdmin.value) router.replace('/')
+  if (!isOwner.value) router.replace('/')
 })
 
 const parseError    = ref('')

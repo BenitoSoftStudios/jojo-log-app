@@ -214,7 +214,7 @@
         <router-link class="menu-item" to="/baby-settings"     @click="menuOpen = false">Baby Settings</router-link>
         <button v-if="isOwner" class="menu-item" type="button" @click="openAddBaby">+ Add Baby</button>
         <button v-if="isOwner" class="menu-item" type="button" :disabled="exporting" @click="handleExportCsv">{{ exporting ? 'Exporting…' : 'Export CSV' }}</button>
-        <router-link v-if="isLegacyImportAdmin" class="menu-item" to="/admin/legacy-import" @click="menuOpen = false">Import CSV</router-link>
+        <router-link v-if="isOwner" class="menu-item" to="/admin/legacy-import" @click="menuOpen = false">Import CSV</router-link>
         <p v-if="isOwner && exportError" class="menu-export-error text-xs">{{ exportError }}</p>
         <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
         <router-link class="menu-item" to="/profile"           @click="menuOpen = false">My Profile</router-link>
@@ -258,7 +258,7 @@ import { useWeeklySettings } from '@/entries/useWeeklySettings.js'
 const router = useRouter()
 
 const { currentUser, signOut }                                                               = useAuth()
-const { familyId, currentMember, familyTimezone, isOwner, isLegacyImportAdmin,
+const { familyId, currentMember, familyTimezone, isOwner,
         loading: familyLoading, loadFamily, clearFamily }                                     = useFamily()
 const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
         selectBaby, createBabyForFamily, clearBabies }                                       = useBabies()

@@ -1,6 +1,5 @@
 <!-- Manage Caregivers — live member list with owner management controls.
-     Invite generation is on the separate Invite Member page (/invite).
-     legacyImportAdmin cannot be changed here; it is Console-only. -->
+     Invite generation is on the separate Invite Member page (/invite). -->
 <template>
   <AppLayout>
     <template #header>
