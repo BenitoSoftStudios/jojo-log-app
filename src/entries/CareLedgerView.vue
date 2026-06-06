@@ -73,12 +73,6 @@
             <span class="today-panel__stat">{{ stats.feedCount }} {{ stats.feedCount === 1 ? 'feed' : 'feeds' }}</span>
           </div>
           <div v-if="lastEntryLine" class="today-panel__last text-faint">{{ lastEntryLine }}</div>
-          <div class="today-panel__actions" role="group" aria-label="Quick log">
-            <button class="qa-pill" type="button" aria-label="Quick log bottle" @click="openQuickAction('bottle')">Bottle</button>
-            <button class="qa-pill" type="button" aria-label="Quick log diaper" @click="openQuickAction('diaper')">Diaper</button>
-            <button class="qa-pill" type="button" aria-label="Quick log medication" @click="openQuickAction('rx')">Rx</button>
-            <button class="qa-pill" type="button" aria-label="Quick log tummy time" @click="openQuickAction('tummy')">Tummy</button>
-          </div>
           <div class="today-panel__secondary text-faint">
             <span>{{ stats.sevenDayMl }} mL · 7 days</span>
             <span class="today-panel__sep-dot" aria-hidden="true"> · </span>
@@ -236,120 +230,6 @@
       </div>
     </AppSheet>
 
-    <!-- Quick action sheet -->
-    <AppSheet v-model="qaSheetOpen" :title="qaSheetTitle">
-
-      <!-- Bottle -->
-      <div v-if="qaType === 'bottle'" class="qa-body">
-        <p class="qa-hint text-soft text-sm">Enter the amount. Diaper will be set to no event.</p>
-        <div class="qa-amount-row">
-          <input
-            ref="qaBottleInputRef"
-            v-model="qaBottleAmount"
-            class="qa-amount-input"
-            type="number"
-            min="0"
-            step="1"
-            inputmode="numeric"
-            placeholder="0"
-            aria-label="Amount in mL"
-          />
-          <span class="qa-amount-unit text-soft">mL</span>
-        </div>
-        <p v-if="qaError" class="qa-error text-sm" role="alert">{{ qaError }}</p>
-        <div class="qa-btns">
-          <button class="qa-btn qa-btn--save" type="button" :disabled="qaCreating" @click="doQuickAction">
-            {{ qaCreating ? 'Adding...' : 'Add entry' }}
-          </button>
-          <button class="qa-btn qa-btn--cancel" type="button" @click="qaSheetOpen = false">Cancel</button>
-        </div>
-      </div>
-
-      <!-- Diaper -->
-      <div v-else-if="qaType === 'diaper'" class="qa-body">
-        <p class="qa-hint text-soft text-sm">0 mL logged. Choose diaper type.</p>
-        <div class="qa-diaper-row" role="group" aria-label="Diaper type">
-          <button
-            v-for="opt in QA_DIAPER_OPTS"
-            :key="opt.value"
-            class="qa-diaper-btn"
-            :class="{ 'qa-diaper-btn--selected': qaDiaper === opt.value }"
-            type="button"
-            :aria-pressed="qaDiaper === opt.value"
-            :aria-label="opt.label"
-            @click="qaDiaper = opt.value"
-          >{{ opt.display }}</button>
-        </div>
-        <p v-if="qaError" class="qa-error text-sm" role="alert">{{ qaError }}</p>
-        <div class="qa-btns">
-          <button class="qa-btn qa-btn--save" type="button" :disabled="qaCreating || !qaDiaper" @click="doQuickAction">
-            {{ qaCreating ? 'Adding...' : 'Add entry' }}
-          </button>
-          <button class="qa-btn qa-btn--cancel" type="button" @click="qaSheetOpen = false">Cancel</button>
-        </div>
-      </div>
-
-      <!-- Rx -->
-      <div v-else-if="qaType === 'rx'" class="qa-body">
-        <p class="qa-hint text-soft text-sm">0 mL, no diaper event. Add medication details.</p>
-        <input
-          ref="qaRxInputRef"
-          v-model="qaRxNote"
-          class="qa-input"
-          type="text"
-          placeholder="Name, dosage (optional)"
-          maxlength="200"
-          autocomplete="off"
-          aria-label="Medication name and dosage"
-        />
-        <p v-if="qaError" class="qa-error text-sm" role="alert">{{ qaError }}</p>
-        <div class="qa-btns">
-          <button class="qa-btn qa-btn--save" type="button" :disabled="qaCreating" @click="doQuickAction">
-            {{ qaCreating ? 'Adding...' : 'Add entry' }}
-          </button>
-          <button class="qa-btn qa-btn--cancel" type="button" @click="qaSheetOpen = false">Cancel</button>
-        </div>
-      </div>
-
-      <!-- Tummy Time -->
-      <div v-else-if="qaType === 'tummy'" class="qa-body">
-        <p class="qa-hint text-soft text-sm">0 mL, no diaper event. Enter tummy time duration.</p>
-        <div class="tt-row">
-          <input
-            v-model.number="qaMinutes"
-            class="tt-duration-input"
-            type="number"
-            min="0"
-            max="99"
-            inputmode="numeric"
-            placeholder="0"
-            aria-label="Minutes"
-          />
-          <span class="tt-duration-unit">min</span>
-          <input
-            v-model.number="qaSeconds"
-            class="tt-duration-input"
-            type="number"
-            min="0"
-            max="59"
-            inputmode="numeric"
-            placeholder="0"
-            aria-label="Seconds"
-          />
-          <span class="tt-duration-unit">sec</span>
-        </div>
-        <p class="qa-subhint text-faint text-xs">Leave blank to record without a duration.</p>
-        <p v-if="qaError" class="qa-error text-sm" role="alert">{{ qaError }}</p>
-        <div class="qa-btns">
-          <button class="qa-btn qa-btn--save qa-btn--save-tt" type="button" :disabled="qaCreating" @click="doQuickAction">
-            {{ qaCreating ? 'Adding...' : 'Add entry' }}
-          </button>
-          <button class="qa-btn qa-btn--cancel" type="button" @click="qaSheetOpen = false">Cancel</button>
-        </div>
-      </div>
-
-    </AppSheet>
-
     <!-- Hamburger menu sheet -->
     <AppSheet v-model="menuOpen" title="Menu">
       <nav class="menu-nav">
@@ -379,7 +259,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AppLayout        from '@/ui/AppLayout.vue'
 import AppSheet         from '@/ui/AppSheet.vue'
@@ -408,9 +288,9 @@ const { familyId, currentMember, familyTimezone, isOwner,
         loading: familyLoading, loadFamily, clearFamily }                                     = useFamily()
 const { activeBabies, activeBabyId, activeBaby, loading: babiesLoading, loadBabies,
         selectBaby, createBabyForFamily, clearBabies }                                       = useBabies()
-const { entries, syncStatus, createEntry }                                                   = useEntries()
+const { entries, syncStatus }                                                                = useEntries()
 const { displayGrouped, stats, mostRecentDate, openMonths, openWeekKeys, openDays,
-        entrySortOrder, toggleMonth, toggleWeek, toggleDay, openDay }                        = useLedger()
+        entrySortOrder, toggleMonth, toggleWeek, toggleDay }                                 = useLedger()
 const { writeError, createDay, addEntry, updateEntry, saveNotes, deleteEntry }               = useLedgerActions()
 const { loadWeekSettings, getBottleAmount }                                                  = useWeeklySettings()
 
@@ -428,96 +308,6 @@ const addBabySaving    = ref(false)
 const addBabyError     = ref('')
 const exporting        = ref(false)
 const exportError      = ref('')
-
-// ── Quick action state ─────────────────────────────────────────────────────
-
-const QA_DIAPER_OPTS = [
-  { value: 'W',  display: 'W',  label: 'Wet diaper' },
-  { value: 'P',  display: 'P',  label: 'Poop diaper' },
-  { value: 'WP', display: 'WP', label: 'Wet and poop diaper' },
-]
-
-const qaSheetOpen      = ref(false)
-const qaType           = ref('')
-const qaDiaper         = ref('')
-const qaBottleAmount   = ref('')
-const qaRxNote         = ref('')
-const qaMinutes        = ref(0)
-const qaSeconds        = ref(0)
-const qaCreating       = ref(false)
-const qaError          = ref('')
-const qaBottleInputRef = ref(null)
-const qaRxInputRef     = ref(null)
-
-const qaSheetTitle = computed(() => {
-  if (qaType.value === 'bottle') return 'Bottle entry'
-  if (qaType.value === 'diaper') return 'Diaper entry'
-  if (qaType.value === 'rx')     return 'Medication entry'
-  if (qaType.value === 'tummy')  return 'Tummy Time entry'
-  return 'Quick entry'
-})
-
-function openQuickAction(type) {
-  qaType.value         = type
-  qaDiaper.value       = ''
-  qaBottleAmount.value = ''
-  qaRxNote.value       = ''
-  qaMinutes.value      = 0
-  qaSeconds.value      = 0
-  qaCreating.value     = false
-  qaError.value        = ''
-  qaSheetOpen.value    = true
-  if (type === 'bottle') {
-    nextTick(() => qaBottleInputRef.value?.focus())
-  } else if (type === 'rx') {
-    nextTick(() => qaRxInputRef.value?.focus())
-  }
-}
-
-async function doQuickAction() {
-  if (qaCreating.value) return
-  qaError.value = ''
-  const time = getCurrentHHMMInTimezone(familyTimezone.value)
-  const date = todayDate.value
-  const base = {
-    vitaminD:                false,
-    medication:              false,
-    medicationNote:          null,
-    tummyTime:               false,
-    tummyTimeCount:          0,
-    tummyTimeDurationSeconds: null,
-    notes:                   '',
-  }
-  let fields = {}
-  if (qaType.value === 'bottle') {
-    const n = parseInt(String(qaBottleAmount.value), 10)
-    if (isNaN(n) || n < 0) { qaError.value = 'Enter a valid amount in mL.'; return }
-    fields = { ...base, entryDate: date, entryTime: time, amountMl: n, diaper: '-' }
-  } else if (qaType.value === 'diaper') {
-    if (!qaDiaper.value) { qaError.value = 'Choose a diaper type.'; return }
-    fields = { ...base, entryDate: date, entryTime: time, amountMl: 0, diaper: qaDiaper.value }
-  } else if (qaType.value === 'rx') {
-    fields = { ...base, entryDate: date, entryTime: time, amountMl: 0, diaper: '-',
-               medication: true, medicationNote: qaRxNote.value.trim() || null }
-  } else if (qaType.value === 'tummy') {
-    const mins  = Math.max(0, Number(qaMinutes.value) || 0)
-    const secs  = Math.max(0, Math.min(59, Number(qaSeconds.value) || 0))
-    const total = mins * 60 + secs
-    fields = { ...base, entryDate: date, entryTime: time, amountMl: 0, diaper: '-',
-               tummyTime: true, tummyTimeCount: 1, tummyTimeDurationSeconds: total > 0 ? total : null }
-  }
-  try {
-    qaCreating.value = true
-    await createEntry(fields)
-    openDay(date)
-    qaSheetOpen.value = false
-  } catch (e) {
-    console.error('[CareLedgerView] quick action failed', e)
-    qaError.value = 'Failed to add entry. Check your connection.'
-  } finally {
-    qaCreating.value = false
-  }
-}
 
 // ── Header clock ───────────────────────────────────────────────────────────
 
@@ -901,35 +691,6 @@ async function handleSignOut() {
   line-height: 1.3;
 }
 
-.today-panel__actions {
-  display: flex;
-  gap: var(--space-2);
-  flex-wrap: wrap;
-  padding-top: var(--space-1);
-}
-
-.qa-pill {
-  background: var(--color-surface-alt);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-full);
-  color: var(--color-text-soft);
-  font-family: var(--font-family);
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-medium);
-  padding: var(--space-1) var(--space-3);
-  min-height: 34px;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: background var(--duration-fast), border-color var(--duration-fast),
-              color var(--duration-fast);
-}
-.qa-pill:active {
-  background: var(--color-mint-soft);
-  border-color: var(--color-mint);
-  color: var(--color-mint);
-}
-
 .today-panel__secondary {
   font-size: var(--font-size-xs);
   line-height: 1.3;
@@ -939,166 +700,6 @@ async function handleSignOut() {
 
 .today-panel__sep-dot {
   color: var(--color-text-faint);
-}
-
-/* ── Quick action sheet content ─────────────────────────────────────── */
-
-.qa-body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-4);
-}
-
-.qa-hint {
-  margin: 0;
-}
-
-.qa-subhint {
-  text-align: center;
-  margin-top: calc(-1 * var(--space-2));
-}
-
-.qa-error {
-  color: var(--color-error);
-  margin: 0;
-}
-
-.qa-amount-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  justify-content: center;
-  padding: var(--space-2) 0;
-}
-
-.qa-amount-input {
-  width: 96px;
-  padding: var(--space-3) var(--space-2);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-xl);
-  font-family: var(--font-family);
-  color: var(--color-text);
-  background: var(--color-surface);
-  text-align: center;
-  -moz-appearance: textfield;
-}
-.qa-amount-input::-webkit-inner-spin-button,
-.qa-amount-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-.qa-amount-input:focus { outline: none; border-color: var(--color-mint); }
-
-.qa-amount-unit {
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-}
-
-.qa-diaper-row {
-  display: flex;
-  gap: var(--space-3);
-  justify-content: center;
-  padding: var(--space-2) 0;
-}
-
-.qa-diaper-btn {
-  flex: 1;
-  max-width: 96px;
-  min-height: 56px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  background: var(--color-surface-alt);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  color: var(--color-text-soft);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: background var(--duration-fast), border-color var(--duration-fast),
-              color var(--duration-fast);
-}
-.qa-diaper-btn--selected {
-  border-color: var(--color-mint);
-  background: var(--color-mint-soft);
-  color: var(--color-mint);
-  font-weight: var(--font-weight-semibold);
-}
-
-.qa-input {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-base);
-  font-family: var(--font-family);
-  color: var(--color-text);
-  background: var(--color-surface);
-  box-sizing: border-box;
-}
-.qa-input:focus { outline: none; border-color: var(--color-mint); }
-
-.tt-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  justify-content: center;
-  padding: var(--space-2) 0;
-}
-
-.tt-duration-input {
-  width: 72px;
-  padding: var(--space-3) var(--space-2);
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-md);
-  font-size: var(--font-size-xl);
-  font-family: var(--font-family);
-  color: var(--color-text);
-  background: var(--color-surface);
-  text-align: center;
-  -moz-appearance: textfield;
-}
-.tt-duration-input::-webkit-inner-spin-button,
-.tt-duration-input::-webkit-outer-spin-button { -webkit-appearance: none; }
-.tt-duration-input:focus { outline: none; border-color: var(--color-lavender); }
-
-.tt-duration-unit {
-  font-size: var(--font-size-sm);
-  color: var(--color-text-soft);
-  font-weight: var(--font-weight-medium);
-  min-width: 28px;
-}
-
-.qa-btns {
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-2);
-}
-
-.qa-btn {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-medium);
-  cursor: pointer;
-  border: none;
-  min-height: 48px;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: opacity var(--duration-fast);
-}
-.qa-btn:active { opacity: 0.82; }
-.qa-btn:disabled { opacity: 0.5; cursor: default; }
-
-.qa-btn--save    { background: var(--color-mint);     color: #fff; }
-.qa-btn--save-tt { background: var(--color-lavender); color: #fff; }
-
-.qa-btn--cancel {
-  background: none;
-  color: var(--color-text-faint);
-  font-size: var(--font-size-sm);
-  font-weight: var(--font-weight-normal);
-  min-height: 40px;
 }
 
 .write-error {
