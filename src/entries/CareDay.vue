@@ -11,8 +11,8 @@
       <span
         v-if="day.hasIncomplete"
         class="care-day__incomplete-label"
-        aria-label="Has incomplete entries"
-      >⚠ incomplete</span>
+        :aria-label="`${day.incompleteCount} ${day.incompleteCount === 1 ? 'entry needs' : 'entries need'} finishing`"
+      >{{ day.incompleteCount }} {{ day.incompleteCount === 1 ? 'needs' : 'need' }} finishing</span>
       <span class="care-day__ml text-soft text-sm">{{ day.totalMl }} mL</span>
       <span class="care-day__chevron" :class="{ 'care-day__chevron--open': isOpen }">›</span>
     </button>
@@ -85,7 +85,7 @@ const sortedEntries = computed(() =>
 .care-day__incomplete-label {
   font-size: var(--font-size-xs);
   font-weight: var(--font-weight-medium);
-  color: var(--color-error);
+  color: var(--color-incomplete);
   flex-shrink: 0;
 }
 

@@ -411,8 +411,8 @@ function cancelTt() {
   -webkit-appearance: none;
 }
 .entry-row__ml--null {
-  border: 1.5px solid var(--color-error);
-  background: rgba(201, 64, 64, 0.05);
+  border: 1.5px solid var(--color-incomplete);
+  background: rgba(232, 160, 32, 0.06);
   padding: var(--space-1) 2px;
 }
 
@@ -431,7 +431,7 @@ function cancelTt() {
   transition: outline var(--duration-fast);
 }
 .entry-row__diaper-group--null {
-  outline: 1.5px solid var(--color-error);
+  outline: 1.5px solid var(--color-incomplete);
   outline-offset: 2px;
 }
 
@@ -439,9 +439,9 @@ function cancelTt() {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 26px;
-  min-height: 28px;
-  padding: 2px 4px;
+  min-width: 32px;
+  min-height: 36px;
+  padding: 4px 6px;
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
   background: none;
@@ -457,7 +457,7 @@ function cancelTt() {
 }
 
 .diaper-btn:nth-child(3) {
-  min-width: 32px;
+  min-width: 40px;
 }
 
 .diaper-btn--active-w {
@@ -528,8 +528,8 @@ function cancelTt() {
   color: var(--color-text-faint);
   padding: var(--space-1) var(--space-2);
   border-radius: var(--radius-sm);
-  min-width: 32px;
-  min-height: 28px;
+  min-width: 36px;
+  min-height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;

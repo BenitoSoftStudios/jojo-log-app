@@ -53,16 +53,17 @@ export function groupEntries(entries) {
     // ── day ─────────────────────────────────────────────────────────────────
     if (!week._dayMap.has(entry.entryDate)) {
       week._dayMap.set(entry.entryDate, {
-        date:          entry.entryDate,
-        label:         formatDateLabel(entry.entryDate),
-        totalMl:       0,
-        hasIncomplete: false,
-        _entries:      [],
+        date:            entry.entryDate,
+        label:           formatDateLabel(entry.entryDate),
+        totalMl:         0,
+        hasIncomplete:   false,
+        incompleteCount: 0,
+        _entries:        [],
       })
     }
     const day = week._dayMap.get(entry.entryDate)
     day.totalMl += ml
-    if (isIncomplete(entry)) day.hasIncomplete = true
+    if (isIncomplete(entry)) { day.hasIncomplete = true; day.incompleteCount++ }
     day._entries.push(entry)
   }
 
@@ -76,11 +77,12 @@ export function groupEntries(entries) {
           const days = Array.from(week._dayMap.entries())
             .sort(([a], [b]) => b.localeCompare(a))
             .map(([, day]) => ({
-              date:          day.date,
-              label:         day.label,
-              totalMl:       day.totalMl,
-              hasIncomplete: day.hasIncomplete,
-              entries:       day._entries
+              date:            day.date,
+              label:           day.label,
+              totalMl:         day.totalMl,
+              hasIncomplete:   day.hasIncomplete,
+              incompleteCount: day.incompleteCount,
+              entries:         day._entries
                 .slice()
                 .sort((a, b) => (a.entryTime < b.entryTime ? -1 : a.entryTime > b.entryTime ? 1 : 0)),
             }))
