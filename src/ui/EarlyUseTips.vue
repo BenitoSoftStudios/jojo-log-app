@@ -22,35 +22,35 @@ const props = defineProps({
 const ALL_TIPS = [
   {
     id: 1,
-    text: 'You can log a bottle-only entry by entering an amount and leaving diaper blank.',
+    text: 'Bottle only: enter the amount, then tap - for no diaper event.',
   },
   {
     id: 2,
-    text: 'You can log a diaper-only entry by leaving amount blank and choosing a diaper result.',
+    text: 'Diaper only: enter 0 mL, then choose W, P, or WP.',
   },
   {
     id: 3,
-    text: 'For a bottle with no diaper, enter the amount and tap - for no diaper change.',
+    text: 'Medication only: enter 0 mL, tap - for no diaper event, then tap Rx.',
   },
   {
     id: 4,
-    text: 'You can log medication-only by tapping Rx, then saving in the medication sheet.',
+    text: 'Tummy Time only: enter 0 mL, tap - for no diaper event, then tap the star.',
   },
   {
     id: 5,
-    text: 'You can log Tummy Time-only by tapping the star, then saving in the Tummy Time sheet.',
+    text: 'Note only: enter 0 mL, tap - for no diaper event, then add your note in Entry Details.',
   },
   {
     id: 6,
-    text: 'You can add a note-only entry from Entry Details.',
+    text: 'Vitamin D only: enter 0 mL, tap - for no diaper event, then tap the sun icon.',
   },
   {
     id: 7,
-    text: 'Tap a note indicator in the ledger to open Entry Details for that entry.',
+    text: 'Blank means unfinished: blank amount or blank diaper means the entry is incomplete.',
   },
   {
     id: 8,
-    text: 'Save Entry is for peace of mind. Closing Entry Details also keeps your changes.',
+    text: 'Tap a note indicator to open Entry Details.',
   },
   {
     id: 9,
@@ -59,7 +59,7 @@ const ALL_TIPS = [
   {
     id: 10,
     ownerOnly: true,
-    text: 'Export CSV creates a backup of the active baby\'s log. Owner only.',
+    text: 'Owners can export CSV to back up the active baby\'s log.',
   },
 ]
 

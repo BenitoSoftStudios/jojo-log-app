@@ -25,7 +25,7 @@
       <ul class="help-list text-sm">
         <li>Entries are grouped by day.</li>
         <li>Each row shows time, feed amount (mL), diaper code, and any extras.</li>
-        <li>Some entries have no feed or no diaper. That is normal for medication-only or Tummy Time entries.</li>
+        <li>Care-only entries like medication or Tummy Time use 0 mL and - to stay complete. Blank amount or blank diaper means the entry is still incomplete.</li>
         <li>The <strong>usual bottle</strong> reminder shown on each week row is a parent-entered reference. It is not advice and does not fill in entries automatically.</li>
       </ul>
     </AppCard>
@@ -184,34 +184,33 @@
     <!-- 8. How do I log... (FAQ) -->
     <AppCard>
       <h2 class="section-heading">How do I log...</h2>
+      <p class="text-soft text-sm faq-intro">
+        Use 0 mL when there was no feed. Use - when there was no diaper event. Blank means not recorded yet, so the entry stays incomplete.
+      </p>
       <dl class="faq-list">
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I log a bottle only?</dt>
-          <dd class="faq-a text-sm text-soft">Enter an amount in the mL field. Leave the diaper blank for an incomplete entry, or tap - (no diaper change) to mark it complete.</dd>
+          <dd class="faq-a text-sm text-soft">Enter the amount, then tap - for no diaper event.</dd>
         </div>
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I log a diaper only?</dt>
-          <dd class="faq-a text-sm text-soft">Leave the mL field blank and tap the diaper result: W, P, WP, or -.</dd>
-        </div>
-        <div class="faq-row">
-          <dt class="faq-q text-sm">How do I log a bottle with no diaper?</dt>
-          <dd class="faq-a text-sm text-soft">Enter the amount and tap - for no diaper change.</dd>
+          <dd class="faq-a text-sm text-soft">Enter 0 mL, then choose W, P, or WP.</dd>
         </div>
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I log medication only?</dt>
-          <dd class="faq-a text-sm text-soft">Tap <strong>Rx</strong> on any entry, fill in the details, and tap <strong>Save</strong>.</dd>
+          <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, tap <strong>Rx</strong>, add details if useful, then save.</dd>
         </div>
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I log Tummy Time only?</dt>
-          <dd class="faq-a text-sm text-soft">Tap <strong>★</strong> on any entry and save in the Tummy Time sheet.</dd>
+          <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, tap <strong>★</strong>, add duration if useful, then save.</dd>
         </div>
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I log a note only?</dt>
-          <dd class="faq-a text-sm text-soft">Open Entry Details with the <strong>⋯</strong> button, type your note, and tap <strong>Save Entry</strong>.</dd>
+          <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, open Entry Details with the <strong>⋯</strong> button, add the note, and tap <strong>Save Entry</strong>.</dd>
         </div>
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I add vitamin D?</dt>
-          <dd class="faq-a text-sm text-soft">Tap the sun icon on any entry row. It turns gold when on.</dd>
+          <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, then tap the sun icon. It turns gold when on.</dd>
         </div>
         <div class="faq-row">
           <dt class="faq-q text-sm">How do I edit a note after saving?</dt>

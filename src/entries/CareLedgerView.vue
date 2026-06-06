@@ -70,24 +70,24 @@
         <!-- Write error banner -->
         <p v-if="writeError" class="write-error text-sm" role="alert">{{ writeError }}</p>
 
-        <!-- Early-use tips -->
-        <EarlyUseTips :is-owner="isOwner" />
+        <!-- Early-use tips (only shown when there are entries) -->
+        <EarlyUseTips v-if="displayGrouped.months.length > 0" :is-owner="isOwner" />
 
         <!-- Ledger hierarchy -->
         <div v-if="displayGrouped.months.length === 0" class="ledger-empty-state">
           <p class="empty-state__heading">No entries yet</p>
           <p class="empty-state__sub text-soft text-sm">Start with whatever you need to record.</p>
-          <p class="empty-state__examples-label">Common examples:</p>
-          <ul class="empty-state__examples text-sm">
-            <li>Bottle only</li>
-            <li>Diaper only</li>
-            <li>Medication only</li>
-            <li>Tummy Time only</li>
-            <li>Note only</li>
-          </ul>
+          <div class="empty-state__chips">
+            <span class="empty-state__chip">Bottle only</span>
+            <span class="empty-state__chip">Diaper only</span>
+            <span class="empty-state__chip">Medication only</span>
+            <span class="empty-state__chip">Tummy Time only</span>
+            <span class="empty-state__chip">Vitamin D only</span>
+            <span class="empty-state__chip">Note only</span>
+          </div>
           <div class="empty-state__actions">
             <button class="empty-state__add-btn" type="button" @click="handleOpenDayPicker">+ Add first entry</button>
-            <router-link class="empty-state__help-link text-sm" to="/help">Help and Legend</router-link>
+            <router-link class="empty-state__help-link" to="/help">Help and Legend</router-link>
           </div>
         </div>
         <div v-else class="ledger">
@@ -630,24 +630,20 @@ async function handleSignOut() {
   margin: 0;
 }
 
-.empty-state__examples-label {
-  margin: 0;
-  font-size: 11px;
-  color: var(--color-text-faint);
-}
-
-.empty-state__examples {
-  list-style: none;
-  padding: 0;
-  margin: 0;
+.empty-state__chips {
   display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  justify-content: center;
 }
 
-.empty-state__examples li {
-  font-size: var(--font-size-sm);
+.empty-state__chip {
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-full);
+  padding: 3px var(--space-3);
+  white-space: nowrap;
 }
 
 .empty-state__actions {
@@ -677,8 +673,22 @@ async function handleSignOut() {
 }
 
 .empty-state__help-link {
-  color: var(--color-text-faint);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-mint);
+  border-radius: var(--radius-md);
+  color: var(--color-mint);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-2) var(--space-4);
+  min-height: 36px;
   text-decoration: none;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.empty-state__help-link:active {
+  background: var(--color-mint-soft);
 }
 
 .ledger {
