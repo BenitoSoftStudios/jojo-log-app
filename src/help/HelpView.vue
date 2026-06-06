@@ -1,4 +1,4 @@
-<!-- Help & Legend — parent-facing guide to using Jojo's Log.
+<!-- Help & Legend - parent-facing guide to using Jojo's Log.
      Available without auth (meta.requiresAuth: false). -->
 <template>
   <AppLayout>
@@ -11,7 +11,7 @@
       <h2 class="section-heading">What Jojo's Log is</h2>
       <p class="text-soft text-sm">
         A shared family log for baby care. Use it to record feeds, diapers,
-        vitamin D, medication, Tummy Time, and notes — so everyone looking
+        vitamin D, medication, Tummy Time, and notes, so everyone looking
         after the baby is on the same page.
       </p>
       <p class="text-faint text-xs disclaimer">
@@ -25,7 +25,7 @@
       <ul class="help-list text-sm">
         <li>Entries are grouped by day.</li>
         <li>Each row shows time, feed amount (mL), diaper code, and any extras.</li>
-        <li>Some entries have no feed or no diaper — that is normal for medication-only or Tummy Time entries.</li>
+        <li>Some entries have no feed or no diaper. That is normal for medication-only or Tummy Time entries.</li>
         <li>The <strong>usual bottle</strong> reminder shown on each week row is a parent-entered reference. It is not advice and does not fill in entries automatically.</li>
       </ul>
     </AppCard>
@@ -79,7 +79,7 @@
         </div>
         <div class="legend-row">
           <dt class="legend-key text-faint">blank</dt>
-          <dd class="legend-val">Diaper not recorded — entry is incomplete</dd>
+          <dd class="legend-val">Diaper not recorded. Entry is incomplete.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">
@@ -92,15 +92,15 @@
         </div>
         <div class="legend-row">
           <dt class="legend-key">Rx</dt>
-          <dd class="legend-val">Medication recorded — tap to add or edit details</dd>
+          <dd class="legend-val">Medication recorded. Tap to add or edit details.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">★</dt>
-          <dd class="legend-val">Tummy Time recorded — tap to add or edit duration</dd>
+          <dd class="legend-val">Tummy Time recorded. Tap to add or edit duration.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">✎</dt>
-          <dd class="legend-val">Entry has notes — tap to read</dd>
+          <dd class="legend-val">Entry has notes. Tap to read.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">⋯</dt>
@@ -110,7 +110,7 @@
           <dt class="legend-key">
             <span class="incomplete-dot-demo" aria-hidden="true"></span>
           </dt>
-          <dd class="legend-val">Amber dot — incomplete entry (amount or diaper is blank)</dd>
+          <dd class="legend-val">Amber dot: incomplete entry (amount or diaper is blank)</dd>
         </div>
       </dl>
 
@@ -120,19 +120,19 @@
           <dt class="legend-key">
             <span class="sync-dot-demo sync-dot-demo--synced" aria-hidden="true"></span>
           </dt>
-          <dd class="legend-val">Green dot — saved and synced</dd>
+          <dd class="legend-val">Green dot: saved and synced</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">
             <span class="sync-dot-demo sync-dot-demo--offline" aria-hidden="true"></span>
           </dt>
-          <dd class="legend-val">Amber dot — offline or pending sync</dd>
+          <dd class="legend-val">Amber dot: offline or pending sync</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key">
             <span class="sync-dot-demo sync-dot-demo--error" aria-hidden="true"></span>
           </dt>
-          <dd class="legend-val">Red dot — sync issue — keep screen open until it recovers</dd>
+          <dd class="legend-val">Red dot: sync issue. Keep screen open until it recovers.</dd>
         </div>
       </dl>
     </AppCard>
@@ -145,7 +145,7 @@
         A sheet opens where you can enter minutes and seconds.
       </p>
       <ul class="help-list text-sm">
-        <li>Duration is optional — leaving it blank still records that a session happened.</li>
+        <li>Duration is optional. Leaving it blank still records that a session happened.</li>
         <li>To remove Tummy Time, tap ★ again and choose <strong>Clear Tummy Time</strong>.</li>
       </ul>
     </AppCard>
@@ -155,7 +155,7 @@
       <h2 class="section-heading">Rx Medication</h2>
       <p class="text-soft text-sm">
         Tap <strong>Rx</strong> on an entry to record that medication was given.
-        A sheet opens where you can type a name and dosage — for example,
+        A sheet opens where you can type a name and dosage, for example:
         "Tylenol, 2.5 mL". The note is optional.
       </p>
       <ul class="help-list text-sm">
@@ -181,11 +181,62 @@
       </ul>
     </AppCard>
 
-    <!-- 8. Trends -->
+    <!-- 8. How do I log... (FAQ) -->
+    <AppCard>
+      <h2 class="section-heading">How do I log...</h2>
+      <dl class="faq-list">
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I log a bottle only?</dt>
+          <dd class="faq-a text-sm text-soft">Enter an amount in the mL field. Leave the diaper blank for an incomplete entry, or tap - (no diaper change) to mark it complete.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I log a diaper only?</dt>
+          <dd class="faq-a text-sm text-soft">Leave the mL field blank and tap the diaper result: W, P, WP, or -.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I log a bottle with no diaper?</dt>
+          <dd class="faq-a text-sm text-soft">Enter the amount and tap - for no diaper change.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I log medication only?</dt>
+          <dd class="faq-a text-sm text-soft">Tap <strong>Rx</strong> on any entry, fill in the details, and tap <strong>Save</strong>.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I log Tummy Time only?</dt>
+          <dd class="faq-a text-sm text-soft">Tap <strong>★</strong> on any entry and save in the Tummy Time sheet.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I log a note only?</dt>
+          <dd class="faq-a text-sm text-soft">Open Entry Details with the <strong>⋯</strong> button, type your note, and tap <strong>Save Entry</strong>.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I add vitamin D?</dt>
+          <dd class="faq-a text-sm text-soft">Tap the sun icon on any entry row. It turns gold when on.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I edit a note after saving?</dt>
+          <dd class="faq-a text-sm text-soft">Tap <strong>✎ notes</strong> or the <strong>⋯</strong> button to open Entry Details, edit the note, and tap <strong>Save Entry</strong>.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">How do I clear medication or Tummy Time?</dt>
+          <dd class="faq-a text-sm text-soft">Tap <strong>Rx</strong> or the star again to open the sheet, then tap <strong>Clear Medication</strong> or <strong>Clear Tummy Time</strong>.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">Why does Since birth need a birthdate?</dt>
+          <dd class="faq-a text-sm text-soft">The Since birth range calculates from the baby's birthdate. Set it in Baby Settings. A nearby date works fine.</dd>
+        </div>
+        <div class="faq-row">
+          <dt class="faq-q text-sm">Why did Import CSV block my file?</dt>
+          <dd class="faq-a text-sm text-soft">Import CSV blocks files if the baby name does not match the active baby, if entries are already in the log, or if the file is not a valid Jojo export. Import is owner-only.</dd>
+        </div>
+      </dl>
+    </AppCard>
+
+    <!-- 9. Trends -->
     <AppCard>
       <h2 class="section-heading">Trends</h2>
       <p class="text-soft text-sm">
-        Trends summarizes what was logged for the active baby — daily feed volume,
+        Trends summarizes what was logged for the active baby: daily feed volume,
         daily feed count, and Tummy Time sessions.
       </p>
       <ul class="help-list text-sm">
@@ -195,7 +246,7 @@
       </ul>
     </AppCard>
 
-    <!-- 9. Baby Settings and privacy -->
+    <!-- 10. Baby Settings and privacy -->
     <AppCard>
       <h2 class="section-heading">Baby Settings and privacy</h2>
       <p class="text-soft text-sm">
@@ -211,7 +262,7 @@
       </ul>
     </AppCard>
 
-    <!-- 10. Family members and caregivers -->
+    <!-- 11. Family members and caregivers -->
     <AppCard>
       <h2 class="section-heading">Family members and caregivers</h2>
       <ul class="help-list text-sm">
@@ -222,7 +273,7 @@
       </ul>
     </AppCard>
 
-    <!-- 11. Import and Export CSV -->
+    <!-- 12. Import and Export CSV -->
     <AppCard>
       <h2 class="section-heading">Import and Export CSV</h2>
       <p class="text-soft text-sm">
@@ -240,16 +291,16 @@
       </ul>
     </AppCard>
 
-    <!-- 12. Recently Deleted -->
+    <!-- 13. Recently Deleted -->
     <AppCard>
       <h2 class="section-heading">Recently Deleted</h2>
       <p class="text-soft text-sm">
         Deleting an entry moves it to Recently Deleted instead of erasing it right away.
-        The owner can restore any entry from there — it returns to the log at its original date.
+        The owner can restore any entry from there. It returns to the log at its original date.
       </p>
     </AppCard>
 
-    <!-- 13. Timezone -->
+    <!-- 14. Timezone -->
     <AppCard>
       <h2 class="section-heading">Timezone</h2>
       <p class="text-soft text-sm">
@@ -259,7 +310,7 @@
       </p>
     </AppCard>
 
-    <!-- 14. What this app is not -->
+    <!-- 15. What this app is not -->
     <AppCard class="not-card">
       <h2 class="section-heading">What this app is not</h2>
       <ul class="help-list text-sm">
@@ -358,6 +409,39 @@ import AppCard from '@/ui/AppCard.vue'
 
 .disclaimer {
   margin-top: var(--space-3);
+}
+
+/* ── FAQ list ─────────────────────────────────────────────────────────── */
+
+.faq-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.faq-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--color-border-soft);
+}
+
+.faq-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.faq-q {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+  margin: 0;
+}
+
+.faq-a {
+  margin: 0;
+  color: var(--color-text-soft);
+  line-height: 1.5;
 }
 
 :deep(.page-container) { display: flex; flex-direction: column; gap: var(--space-4); }

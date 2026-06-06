@@ -70,12 +70,25 @@
         <!-- Write error banner -->
         <p v-if="writeError" class="write-error text-sm" role="alert">{{ writeError }}</p>
 
+        <!-- Early-use tips -->
+        <EarlyUseTips :is-owner="isOwner" />
+
         <!-- Ledger hierarchy -->
-        <div v-if="displayGrouped.months.length === 0" class="ledger-empty">
-          <p class="text-faint text-sm">
-            No entries yet.<br />
-            Tap <strong>+ Day</strong> to create the first entry.
-          </p>
+        <div v-if="displayGrouped.months.length === 0" class="ledger-empty-state">
+          <p class="empty-state__heading">No entries yet</p>
+          <p class="empty-state__sub text-soft text-sm">Start with whatever you need to record.</p>
+          <p class="empty-state__examples-label">Common examples:</p>
+          <ul class="empty-state__examples text-sm">
+            <li>Bottle only</li>
+            <li>Diaper only</li>
+            <li>Medication only</li>
+            <li>Tummy Time only</li>
+            <li>Note only</li>
+          </ul>
+          <div class="empty-state__actions">
+            <button class="empty-state__add-btn" type="button" @click="handleOpenDayPicker">+ Add first entry</button>
+            <router-link class="empty-state__help-link text-sm" to="/help">Help and Legend</router-link>
+          </div>
         </div>
         <div v-else class="ledger">
           <CareMonth
@@ -238,6 +251,7 @@ import { useRouter } from 'vue-router'
 import AppLayout        from '@/ui/AppLayout.vue'
 import AppSheet         from '@/ui/AppSheet.vue'
 import AppButton        from '@/ui/AppButton.vue'
+import EarlyUseTips     from '@/ui/EarlyUseTips.vue'
 import SummaryChips     from '@/entries/SummaryChips.vue'
 import CareMonth        from '@/entries/CareMonth.vue'
 import EntryDetailSheet from '@/entries/EntryDetailSheet.vue'
@@ -589,6 +603,82 @@ async function handleSignOut() {
   padding: var(--space-8);
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-lg);
+}
+
+/* ── Rich empty ledger state ──────────────────────────────────────────── */
+
+.ledger-empty-state {
+  margin-top: var(--space-4);
+  text-align: center;
+  padding: var(--space-6);
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius-lg);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.empty-state__heading {
+  margin: 0;
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-text);
+}
+
+.empty-state__sub {
+  margin: 0;
+}
+
+.empty-state__examples-label {
+  margin: 0;
+  font-size: 11px;
+  color: var(--color-text-faint);
+}
+
+.empty-state__examples {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.empty-state__examples li {
+  font-size: var(--font-size-sm);
+  color: var(--color-text-faint);
+}
+
+.empty-state__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.empty-state__add-btn {
+  background: none;
+  border: 1.5px solid var(--color-mint);
+  border-radius: var(--radius-md);
+  color: var(--color-mint);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  padding: var(--space-2) var(--space-5);
+  cursor: pointer;
+  min-height: 44px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.empty-state__add-btn:active {
+  background: var(--color-mint-soft);
+}
+
+.empty-state__help-link {
+  color: var(--color-text-faint);
+  text-decoration: none;
 }
 
 .ledger {
