@@ -1,16 +1,51 @@
-<!-- Settings — family timezone (functional) and display unit (placeholder). -->
+<!-- Settings — organized control panel.
+     Sections: profile, baby, family, time/display, tips, backup, help. -->
 <template>
   <AppLayout>
     <template #header>
       <SecondaryHeader title="Settings" />
     </template>
 
-    <AppCard>
-      <h2 class="section-heading">Timezone</h2>
-      <p class="text-soft text-sm">
-        Controls "today" in the ledger header, stats, and new entry time defaults.
-      </p>
+    <!-- Your profile -->
+    <AppCard :padded="false">
+      <p class="settings-group-label">Your profile</p>
+      <router-link class="settings-row" to="/profile">
+        <span class="settings-row__label">Name and initials</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>
+      </router-link>
+    </AppCard>
 
+    <!-- Baby profile -->
+    <AppCard :padded="false">
+      <p class="settings-group-label">Baby profile</p>
+      <router-link class="settings-row" to="/baby-settings">
+        <span class="settings-row__label">Name, birthdate, and avatar</span>
+        <span v-if="!isOwner" class="settings-row__badge">View only</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>
+      </router-link>
+    </AppCard>
+
+    <!-- Family and caregivers -->
+    <AppCard :padded="false">
+      <p class="settings-group-label">Family and caregivers</p>
+      <router-link class="settings-row" to="/manage-caregivers">
+        <span class="settings-row__label">Manage caregivers</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>
+      </router-link>
+      <router-link v-if="isOwner" class="settings-row" to="/invite">
+        <span class="settings-row__label">Invite a caregiver</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>
+      </router-link>
+    </AppCard>
+
+    <!-- Time and display -->
+    <AppCard>
+      <h2 class="section-heading">Time and display</h2>
+
+      <p class="field-sub-label">Timezone</p>
+      <p class="text-soft text-sm field-note">
+        Controls "today" in the ledger header, stats, and new entry times.
+      </p>
       <div class="tz-row">
         <select
           v-if="isOwner"
@@ -23,24 +58,65 @@
         </select>
         <p v-else class="text-soft text-sm field-readonly">{{ displayTimezone }}</p>
       </div>
-
-      <p v-if="tzError" class="field-error text-sm" role="alert">{{ tzError }}</p>
+      <p v-if="tzError"   class="field-error text-sm" role="alert">{{ tzError }}</p>
       <p v-if="tzSuccess" class="field-success text-sm" role="status">Saved.</p>
-
       <AppButton
         v-if="isOwner"
         class="save-btn"
         :disabled="tzSaving || pendingTimezone === currentTimezone"
         @click="saveTimezone"
-      >
-        {{ tzSaving ? 'Saving…' : 'Save timezone' }}
-      </AppButton>
-    </AppCard>
+      >{{ tzSaving ? 'Saving…' : 'Save timezone' }}</AppButton>
 
-    <AppCard>
-      <h2 class="section-heading">Display unit</h2>
+      <hr class="settings-divider" />
+
+      <p class="field-sub-label">Display unit</p>
       <p class="text-faint text-sm">fl oz display coming later. Amounts are stored in mL.</p>
     </AppCard>
+
+    <!-- Tips -->
+    <AppCard>
+      <h2 class="section-heading">Tips</h2>
+      <div class="tips-row">
+        <div class="tips-row__text">
+          <p class="field-sub-label">Show tips</p>
+          <p class="text-faint text-xs">Tips appear in the ledger after your first entry.</p>
+        </div>
+        <button
+          class="toggle"
+          :class="{ 'toggle--on': tipsVisible }"
+          type="button"
+          :aria-pressed="tipsVisible"
+          :aria-label="tipsVisible ? 'Tips on' : 'Tips off'"
+          @click="toggleTips"
+        >
+          <span class="toggle__thumb" />
+        </button>
+      </div>
+      <button class="reset-tips-btn" type="button" @click="resetTips">Reset tips</button>
+      <p class="text-faint text-xs tips-device-note">Tips are stored on this device.</p>
+    </AppCard>
+
+    <!-- Backup and import (owner-only) -->
+    <AppCard v-if="isOwner" :padded="false">
+      <p class="settings-group-label">Backup and import</p>
+      <router-link class="settings-row" to="/admin/legacy-import">
+        <span class="settings-row__label">Import CSV</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>
+      </router-link>
+      <div class="settings-info-row">
+        <span class="text-faint text-xs">Export CSV is in the main menu.</span>
+      </div>
+    </AppCard>
+
+    <!-- Help -->
+    <AppCard :padded="false">
+      <p class="settings-group-label">Help</p>
+      <router-link class="settings-row" to="/help">
+        <span class="settings-row__label">Help and Legend</span>
+        <span class="settings-row__chevron" aria-hidden="true">›</span>
+      </router-link>
+    </AppCard>
+
   </AppLayout>
 </template>
 
@@ -63,7 +139,12 @@ const TIMEZONES = [
   { value: 'UTC',                 label: 'UTC' },
 ]
 
+const TIPS_HIDDEN_KEY    = 'jojo_tips_hidden'
+const TIPS_DISMISSED_KEY = 'jojo_tips_dismissed'
+
 const { familyId, familyTimezone, isOwner, refreshFamily } = useFamily()
+
+// ── Timezone ──────────────────────────────────────────────────────────────────
 
 const currentTimezone = computed(() => familyTimezone.value)
 const displayTimezone = computed(() => {
@@ -96,17 +177,110 @@ async function saveTimezone() {
     tzSaving.value = false
   }
 }
+
+// ── Tips ───────────────────────────────────────────────────────────────────────
+
+function readTipsHidden() {
+  try { return localStorage.getItem(TIPS_HIDDEN_KEY) === 'true' } catch { return false }
+}
+
+const tipsHidden  = ref(readTipsHidden())
+const tipsVisible = computed(() => !tipsHidden.value)
+
+function toggleTips() {
+  const next = !tipsHidden.value
+  tipsHidden.value = next
+  try {
+    if (next) {
+      localStorage.setItem(TIPS_HIDDEN_KEY, 'true')
+    } else {
+      localStorage.removeItem(TIPS_HIDDEN_KEY)
+    }
+  } catch { /* ignore */ }
+}
+
+function resetTips() {
+  tipsHidden.value = false
+  try {
+    localStorage.removeItem(TIPS_DISMISSED_KEY)
+    localStorage.removeItem(TIPS_HIDDEN_KEY)
+  } catch { /* ignore */ }
+}
 </script>
 
 <style scoped>
+/* ── Layout ──────────────────────────────────────────────────────────────────*/
+
+:deep(.page-container) { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* ── Settings nav cards ──────────────────────────────────────────────────────*/
+
+.settings-group-label {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  font-size: var(--font-size-xs);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-faint);
+  letter-spacing: 0.03em;
+  margin: 0;
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  min-height: 46px;
+  border-top: 1px solid var(--color-border-soft);
+  text-decoration: none;
+  color: var(--color-text);
+  font-size: var(--font-size-base);
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.settings-row:active { background: var(--color-surface-alt); }
+
+.settings-row__label   { flex: 1; }
+.settings-row__chevron {
+  color: var(--color-text-faint);
+  font-size: var(--font-size-lg);
+  line-height: 1;
+  flex-shrink: 0;
+}
+.settings-row__badge {
+  font-size: var(--font-size-xs);
+  color: var(--color-text-faint);
+  border: 1px solid var(--color-border-soft);
+  border-radius: var(--radius-full);
+  padding: 2px var(--space-2);
+  flex-shrink: 0;
+}
+
+.settings-info-row {
+  padding: var(--space-2) var(--space-4);
+  border-top: 1px solid var(--color-border-soft);
+}
+
+/* ── Inline-control cards ────────────────────────────────────────────────────*/
 
 .section-heading {
   font-size: var(--font-size-base);
   font-weight: var(--font-weight-semibold);
-  margin-bottom: var(--space-3);
+  margin-bottom: var(--space-4);
 }
 
-.tz-row { margin: var(--space-3) 0; }
+.field-sub-label {
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-soft);
+  margin-bottom: var(--space-1);
+}
+
+.field-note { margin-bottom: var(--space-2); }
+
+/* ── Timezone ────────────────────────────────────────────────────────────────*/
+
+.tz-row { margin: var(--space-2) 0 var(--space-3); }
 
 .tz-select {
   width: 100%;
@@ -119,11 +293,7 @@ async function saveTimezone() {
   color: var(--color-text);
   box-sizing: border-box;
 }
-
-.tz-select:focus {
-  outline: none;
-  border-color: var(--color-mint);
-}
+.tz-select:focus { outline: none; border-color: var(--color-mint); }
 
 .field-readonly { padding: var(--space-1) 0; }
 .field-error    { color: var(--color-error); margin-bottom: var(--space-2); }
@@ -131,5 +301,75 @@ async function saveTimezone() {
 
 .save-btn { margin-top: var(--space-3); }
 
-:deep(.page-container) { display: flex; flex-direction: column; gap: var(--space-4); }
+.settings-divider {
+  border: none;
+  border-top: 1px solid var(--color-border-soft);
+  margin: var(--space-4) 0;
+}
+
+/* ── Tips card ───────────────────────────────────────────────────────────────*/
+
+.tips-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+.tips-row__text { flex: 1; }
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 26px;
+  background: var(--color-border);
+  border: none;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background var(--duration-base) var(--ease-out);
+  -webkit-tap-highlight-color: transparent;
+}
+.toggle--on { background: var(--color-mint); }
+
+.toggle__thumb {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: var(--radius-full);
+  transition: transform var(--duration-base) var(--ease-out);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+}
+.toggle--on .toggle__thumb { transform: translateX(18px); }
+
+@media (prefers-reduced-motion: reduce) {
+  .toggle, .toggle__thumb { transition: none; }
+}
+
+.reset-tips-btn {
+  width: 100%;
+  padding: var(--space-2) var(--space-4);
+  background: none;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  font-family: var(--font-family);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  color: var(--color-text-soft);
+  cursor: pointer;
+  min-height: 40px;
+  -webkit-tap-highlight-color: transparent;
+  transition: background var(--duration-fast) var(--ease-out);
+}
+.reset-tips-btn:active { background: var(--color-surface-alt); }
+
+.tips-device-note {
+  display: block;
+  margin-top: var(--space-3);
+}
 </style>

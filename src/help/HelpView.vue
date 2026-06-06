@@ -412,6 +412,14 @@ import AppCard from '@/ui/AppCard.vue'
 
 /* ── FAQ list ─────────────────────────────────────────────────────────── */
 
+.faq-intro {
+  background: var(--color-mint-soft);
+  border-radius: var(--radius-sm);
+  padding: var(--space-3);
+  margin-bottom: var(--space-3);
+  line-height: 1.5;
+}
+
 .faq-list {
   display: flex;
   flex-direction: column;

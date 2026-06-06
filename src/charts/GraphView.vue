@@ -54,7 +54,7 @@
       <!-- Since birth: no birthdate set -->
       <div v-if="sinceBirthMissingBirthdate" class="empty-state-banner">
         <p class="text-soft text-sm">
-          Add a birthdate in Baby Settings to use Since birth trends. For privacy, a nearby date is fine.
+          Add a birthdate in <router-link class="banner-link" to="/baby-settings">Baby Settings</router-link> to use Since birth trends. For privacy, a nearby date is fine.
         </p>
       </div>
 
@@ -738,4 +738,9 @@ function formatDayLabel(dateStr) {
   text-align: center;
 }
 .empty-state-banner p { margin: 0; line-height: 1.5; }
+
+.banner-link {
+  color: var(--color-mint);
+  text-decoration: underline;
+}
 </style>

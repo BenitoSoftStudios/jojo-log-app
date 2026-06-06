@@ -1,15 +1,17 @@
 <!-- Dismissible early-use tip card. Shows one practical tip at a time.
      State is stored in localStorage only. No Firestore writes. -->
 <template>
-  <div v-if="visible" class="early-tips">
-    <p class="early-tips__counter">Tip {{ position }} of {{ total }}</p>
-    <p class="early-tips__text text-sm">{{ currentTip.text }}</p>
-    <div class="early-tips__actions">
-      <button class="tips-btn" type="button" @click="dismiss">Got it</button>
-      <button class="tips-btn tips-btn--muted" type="button" @click="hideAll">Hide tips</button>
-      <router-link class="tips-help-link" to="/help">Help</router-link>
+  <Transition name="tip-fade">
+    <div v-if="visible" class="early-tips">
+      <p class="early-tips__counter">Tip {{ position }} of {{ total }}</p>
+      <p class="early-tips__text text-sm">{{ currentTip.text }}</p>
+      <div class="early-tips__actions">
+        <button class="tips-btn tips-btn--primary" type="button" @click="dismiss">Got it</button>
+        <button class="tips-btn tips-btn--muted" type="button" @click="hideAll">Hide tips</button>
+        <router-link class="tips-help-link" to="/help">Help</router-link>
+      </div>
     </div>
-  </div>
+  </Transition>
 </template>
 
 <script setup>
@@ -127,13 +129,14 @@ function hideAll() {
   background: var(--color-surface);
   border: 1px solid var(--color-border-soft);
   border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
   padding: var(--space-3) var(--space-4);
   margin-bottom: var(--space-3);
 }
 
 .early-tips__counter {
   margin: 0 0 var(--space-1);
-  font-size: 10px;
+  font-size: var(--font-size-xs);
   color: var(--color-text-faint);
   line-height: 1;
 }
@@ -166,6 +169,11 @@ function hideAll() {
   touch-action: manipulation;
 }
 
+.tips-btn--primary {
+  color: var(--color-mint);
+  border-color: var(--color-mint);
+}
+
 .tips-btn--muted {
   color: var(--color-text-faint);
   border-color: transparent;
@@ -176,5 +184,13 @@ function hideAll() {
   color: var(--color-mint);
   text-decoration: none;
   font-size: var(--font-size-xs);
+}
+
+/* Tip dismissal fade */
+.tip-fade-leave-active { transition: opacity var(--duration-base) var(--ease-out); }
+.tip-fade-leave-to { opacity: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tip-fade-leave-active { transition: none; }
 }
 </style>
