@@ -232,82 +232,27 @@
 
     <!-- Hamburger menu sheet -->
     <AppSheet v-model="menuOpen" title="Menu">
-      <nav class="menu-nav" aria-label="Main navigation">
-
-        <!-- Track -->
-        <p class="menu-group-label">Track</p>
-        <div class="menu-group">
-          <router-link class="menu-row" to="/graphs" @click="menuOpen = false">
-            <span class="menu-row__label">Trends</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <router-link class="menu-row" to="/recently-deleted" @click="menuOpen = false">
-            <span class="menu-row__label">Recently Deleted</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <router-link class="menu-row" to="/help" @click="menuOpen = false">
-            <span class="menu-row__label">Help and Legend</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-        </div>
-
-        <!-- Family -->
-        <p class="menu-group-label">Family</p>
-        <div class="menu-group">
-          <router-link class="menu-row" to="/baby-settings" @click="menuOpen = false">
-            <span class="menu-row__label">Baby Settings</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <router-link class="menu-row" to="/manage-caregivers" @click="menuOpen = false">
-            <span class="menu-row__label">Manage Caregivers</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <router-link v-if="isOwner" class="menu-row" to="/invite" @click="menuOpen = false">
-            <span class="menu-row__label">Invite a Caregiver</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <button v-if="isOwner" class="menu-row" type="button" @click="openAddBaby">
-            <span class="menu-row__label">Add Baby</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </button>
-        </div>
-
-        <!-- Backup (owner only) -->
-        <template v-if="isOwner">
-          <p class="menu-group-label">Backup</p>
-          <div class="menu-group">
-            <button class="menu-row" type="button" :disabled="exporting" @click="handleExportCsv">
-              <span class="menu-row__label">{{ exporting ? 'Exporting...' : 'Export CSV' }}</span>
-              <span class="menu-row__chevron" aria-hidden="true">›</span>
-            </button>
-            <router-link class="menu-row" to="/admin/legacy-import" @click="menuOpen = false">
-              <span class="menu-row__label">Import CSV</span>
-              <span class="menu-row__chevron" aria-hidden="true">›</span>
-            </router-link>
-          </div>
-          <p v-if="exportError" class="menu-export-error text-xs" role="alert">{{ exportError }}</p>
-        </template>
-
-        <!-- Account -->
-        <p class="menu-group-label">Account</p>
-        <div class="menu-group">
-          <router-link class="menu-row" to="/settings" @click="menuOpen = false">
-            <span class="menu-row__label">Settings</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <router-link class="menu-row" to="/profile" @click="menuOpen = false">
-            <span class="menu-row__label">My Profile</span>
-            <span class="menu-row__chevron" aria-hidden="true">›</span>
-          </router-link>
-          <button class="menu-row menu-sort-toggle" type="button" @click="toggleSortOrder">
-            <span class="menu-row__label">Entry order</span>
-            <span class="menu-sort-value">{{ entrySortOrder === 'newest-first' ? 'Newest ↑' : 'Oldest ↑' }}</span>
-          </button>
-          <button class="menu-row menu-row--signout" type="button" @click="handleSignOut">
-            <span class="menu-row__label">Sign out</span>
-          </button>
-        </div>
-
+      <nav class="menu-nav">
+        <router-link class="menu-item" to="/graphs"            @click="menuOpen = false">Trends</router-link>
+        <router-link class="menu-item" to="/recently-deleted"  @click="menuOpen = false">Recently Deleted</router-link>
+        <router-link class="menu-item" to="/manage-caregivers" @click="menuOpen = false">Manage Caregivers</router-link>
+        <router-link v-if="isOwner" class="menu-item" to="/invite" @click="menuOpen = false">Invite member</router-link>
+        <router-link class="menu-item" to="/baby-settings"     @click="menuOpen = false">Baby Settings</router-link>
+        <button v-if="isOwner" class="menu-item" type="button" @click="openAddBaby">+ Add Baby</button>
+        <button v-if="isOwner" class="menu-item" type="button" :disabled="exporting" @click="handleExportCsv">{{ exporting ? 'Exporting…' : 'Export CSV' }}</button>
+        <router-link v-if="isOwner" class="menu-item" to="/admin/legacy-import" @click="menuOpen = false">Import CSV</router-link>
+        <p v-if="isOwner && exportError" class="menu-export-error text-xs">{{ exportError }}</p>
+        <router-link class="menu-item" to="/settings"          @click="menuOpen = false">Settings</router-link>
+        <router-link class="menu-item" to="/profile"           @click="menuOpen = false">My Profile</router-link>
+        <router-link class="menu-item" to="/help"              @click="menuOpen = false">Help / Legend</router-link>
+        <hr class="menu-divider" />
+        <!-- Entry sort order preference -->
+        <button class="menu-item menu-sort-row" type="button" @click="toggleSortOrder">
+          <span class="menu-sort-label">Entry order</span>
+          <span class="menu-sort-value">{{ entrySortOrder === 'newest-first' ? 'Newest ↑' : 'Oldest ↑' }}</span>
+        </button>
+        <hr class="menu-divider" />
+        <button class="menu-item menu-item--signout" @click="handleSignOut">Sign out</button>
       </nav>
     </AppSheet>
   </AppLayout>
@@ -975,90 +920,65 @@ async function handleSignOut() {
   display: flex;
   flex-direction: column;
   gap: var(--space-1);
-  padding-bottom: var(--space-2);
 }
 
-.menu-group-label {
-  font-size: var(--font-size-xs);
-  font-weight: var(--font-weight-semibold);
-  color: var(--color-text-faint);
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: var(--space-3) var(--space-1) var(--space-1);
-}
-
-.menu-group {
-  display: flex;
-  flex-direction: column;
-  background: var(--color-surface);
-  border: 1px solid var(--color-border-soft);
-  border-radius: var(--radius-lg);
-  overflow: hidden;
-}
-
-.menu-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  min-height: 46px;
-  padding: var(--space-3) var(--space-4);
-  border: none;
-  border-top: 1px solid var(--color-border-soft);
-  background: none;
+.menu-item {
+  display: block;
+  padding: var(--space-3) var(--space-2);
   text-decoration: none;
-  font-family: var(--font-family);
-  font-size: var(--font-size-base);
-  font-weight: var(--font-weight-normal);
   color: var(--color-text);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  text-align: left;
-  box-sizing: border-box;
+  font-size: var(--font-size-md);
+  border-radius: var(--radius-md);
+  transition: background var(--duration-fast) var(--ease-out);
 }
 
-.menu-row:first-child {
-  border-top: none;
-}
-
-.menu-row:active {
+.menu-item:hover {
   background: var(--color-surface-alt);
 }
 
-.menu-row:disabled {
-  opacity: 0.5;
-  cursor: default;
+.menu-divider {
+  border: none;
+  border-top: 1px solid var(--color-border);
+  margin: var(--space-2) 0;
 }
 
-.menu-row__label {
-  flex: 1;
-}
-
-.menu-row__chevron {
-  color: var(--color-text-faint);
-  font-size: var(--font-size-md);
-  flex-shrink: 0;
-}
-
-.menu-row--signout {
+.menu-item--signout {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  text-align: left;
+  width: 100%;
   color: var(--color-error);
 }
 
-.menu-sort-toggle {
+.menu-export-error {
+  padding: 0 var(--space-4) var(--space-2);
+  color: var(--color-error);
+}
+
+/* menu-sort-row extends .menu-item — same height, same padding, same tap target */
+.menu-sort-row {
+  display: flex;
+  align-items: center;
   justify-content: space-between;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  text-align: left;
+  width: 100%;
+}
+
+.menu-sort-label {
+  color: var(--color-text-soft);
+  font-size: var(--font-size-md);
 }
 
 .menu-sort-value {
   font-size: var(--font-size-sm);
   color: var(--color-mint);
   font-weight: var(--font-weight-medium);
-  flex-shrink: 0;
-}
-
-.menu-export-error {
-  padding: var(--space-1) var(--space-1) 0;
-  color: var(--color-error);
 }
 
 /* ── Add baby form ─────────────────────────────────────────────────────── */
