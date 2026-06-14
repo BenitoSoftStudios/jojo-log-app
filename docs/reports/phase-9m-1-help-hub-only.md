@@ -123,7 +123,7 @@ No `scripts/` directory exists in this repository. The watcher patch described i
 
 ## Commit hash
 
-TBD -- set after commit.
+`846d283`
 
 ## Main synced with origin/main
 
