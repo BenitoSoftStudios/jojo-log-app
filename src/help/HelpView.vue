@@ -19,7 +19,20 @@
       </p>
     </AppCard>
 
-    <!-- 2. Reading the ledger -->
+    <!-- 2. Quick jump hub -->
+    <AppCard>
+      <h2 class="section-heading">What do you want to log?</h2>
+      <div class="hub-chips" role="list" aria-label="Jump to logging instructions">
+        <a class="hub-chip" href="#faq-bottle" role="listitem">Bottle only</a>
+        <a class="hub-chip" href="#faq-diaper" role="listitem">Diaper only</a>
+        <a class="hub-chip" href="#faq-rx" role="listitem">Medication</a>
+        <a class="hub-chip" href="#faq-tummy" role="listitem">Tummy Time</a>
+        <a class="hub-chip" href="#faq-note" role="listitem">Note only</a>
+        <a class="hub-chip" href="#faq-vitd" role="listitem">Vitamin D</a>
+      </div>
+    </AppCard>
+
+    <!-- 3. Reading the ledger -->
     <AppCard>
       <h2 class="section-heading">Reading the ledger</h2>
       <ul class="help-list text-sm">
@@ -30,7 +43,7 @@
       </ul>
     </AppCard>
 
-    <!-- 3. Adding and editing entries -->
+    <!-- 4. Adding and editing entries -->
     <AppCard>
       <h2 class="section-heading">Adding and editing entries</h2>
       <dl class="legend-list">
@@ -53,7 +66,7 @@
       </p>
     </AppCard>
 
-    <!-- 4. Icon legend -->
+    <!-- 5. Icon legend -->
     <AppCard>
       <h2 class="section-heading">Icon legend</h2>
       <dl class="legend-list">
@@ -137,7 +150,7 @@
       </dl>
     </AppCard>
 
-    <!-- 5. Tummy Time -->
+    <!-- 6. Tummy Time -->
     <AppCard>
       <h2 class="section-heading">Tummy Time</h2>
       <p class="text-soft text-sm">
@@ -150,7 +163,7 @@
       </ul>
     </AppCard>
 
-    <!-- 6. Rx Medication -->
+    <!-- 7. Rx Medication -->
     <AppCard>
       <h2 class="section-heading">Rx Medication</h2>
       <p class="text-soft text-sm">
@@ -167,7 +180,7 @@
       </p>
     </AppCard>
 
-    <!-- 7. Notes and Entry Details -->
+    <!-- 8. Notes and Entry Details -->
     <AppCard>
       <h2 class="section-heading">Notes and Entry Details</h2>
       <p class="text-soft text-sm">
@@ -181,34 +194,34 @@
       </ul>
     </AppCard>
 
-    <!-- 8. How do I log... (FAQ) -->
+    <!-- 9. How do I log... (FAQ) -->
     <AppCard>
       <h2 class="section-heading">How do I log...</h2>
       <p class="text-soft text-sm faq-intro">
         Use 0 mL when there was no feed. Use - when there was no diaper event. Blank means not recorded yet, so the entry stays incomplete.
       </p>
       <dl class="faq-list">
-        <div class="faq-row">
+        <div class="faq-row" id="faq-bottle">
           <dt class="faq-q text-sm">How do I log a bottle only?</dt>
           <dd class="faq-a text-sm text-soft">Enter the amount, then tap - for no diaper event.</dd>
         </div>
-        <div class="faq-row">
+        <div class="faq-row" id="faq-diaper">
           <dt class="faq-q text-sm">How do I log a diaper only?</dt>
           <dd class="faq-a text-sm text-soft">Enter 0 mL, then choose W, P, or WP.</dd>
         </div>
-        <div class="faq-row">
+        <div class="faq-row" id="faq-rx">
           <dt class="faq-q text-sm">How do I log medication only?</dt>
           <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, tap <strong>Rx</strong>, add details if useful, then save.</dd>
         </div>
-        <div class="faq-row">
+        <div class="faq-row" id="faq-tummy">
           <dt class="faq-q text-sm">How do I log Tummy Time only?</dt>
           <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, tap <strong>★</strong>, add duration if useful, then save.</dd>
         </div>
-        <div class="faq-row">
+        <div class="faq-row" id="faq-note">
           <dt class="faq-q text-sm">How do I log a note only?</dt>
           <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, open Entry Details with the <strong>⋯</strong> button, add the note, and tap <strong>Save Entry</strong>.</dd>
         </div>
-        <div class="faq-row">
+        <div class="faq-row" id="faq-vitd">
           <dt class="faq-q text-sm">How do I add vitamin D?</dt>
           <dd class="faq-a text-sm text-soft">Enter 0 mL, tap - for no diaper event, then tap the sun icon. It turns gold when on.</dd>
         </div>
@@ -452,4 +465,38 @@ import AppCard from '@/ui/AppCard.vue'
 }
 
 :deep(.page-container) { display: flex; flex-direction: column; gap: var(--space-4); }
+
+/* ── Quick jump hub ─────────────────────────────────────────────────────── */
+
+.hub-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.hub-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: var(--space-2) var(--space-3);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-full);
+  background: var(--color-surface-alt);
+  color: var(--color-text-soft);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  min-height: 36px;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.hub-chip:active {
+  background: var(--color-mint-soft);
+  border-color: var(--color-mint);
+  color: var(--color-mint);
+}
+
+/* offset for sticky header so anchors don't land underneath it */
+.faq-row[id] {
+  scroll-margin-top: calc(var(--header-height) + var(--space-4));
+}
 </style>
