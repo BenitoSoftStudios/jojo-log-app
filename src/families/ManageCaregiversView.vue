@@ -24,7 +24,7 @@
             <div class="member-info">
               <span class="member-label">{{ m.displayLabel }}</span>
               <span v-if="m.initials" class="member-meta text-faint text-xs">({{ m.initials }})</span>
-              <span class="member-meta text-faint text-xs">{{ m.role }}</span>
+              <span class="member-meta text-faint text-xs">{{ m.role === 'owner' ? 'Owner' : 'Caregiver' }}</span>
               <span v-if="isSelf(m)" class="member-you text-xs">You</span>
             </div>
             <div class="member-right">

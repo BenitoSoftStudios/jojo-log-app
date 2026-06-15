@@ -11,7 +11,7 @@
       <form class="profile-form" @submit.prevent="handleSave">
         <div class="field-group">
           <span class="field-label">Role</span>
-          <p class="field-readonly text-sm">{{ currentMember.role }}</p>
+          <p class="field-readonly text-sm">{{ currentMember.role === 'owner' ? 'Owner' : 'Caregiver' }}</p>
         </div>
 
         <div class="field-group">
@@ -92,7 +92,7 @@ async function handleSave() {
   } catch (e) {
     console.error('[ProfileView] updateMember failed | code:', e.code, '| message:', e.message, e)
     if (e?.code === 'permission-denied') {
-      saveError.value = 'Permission denied. This account may need a Firestore rules update before self-edit is supported.'
+      saveError.value = 'Permission denied. Please try again or contact the family owner.'
     } else {
       saveError.value = 'Save failed. Please try again.'
     }

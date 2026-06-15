@@ -67,10 +67,6 @@
         @click="saveTimezone"
       >{{ tzSaving ? 'Saving…' : 'Save timezone' }}</AppButton>
 
-      <hr class="settings-divider" />
-
-      <p class="field-sub-label">Display unit</p>
-      <p class="text-faint text-sm">fl oz display coming later. Amounts are stored in mL.</p>
     </AppCard>
 
     <!-- Tips -->
