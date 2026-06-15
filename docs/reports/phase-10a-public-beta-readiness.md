@@ -252,11 +252,11 @@ See Part 3 above for the full launch blocker list. The most important remaining 
 
 ## Commit hash
 
-TBD -- set after commit.
+`74fe086`
 
 ## Main synced with origin/main
 
-Yes -- will be pushed to `origin/main` after commit.
+Yes -- pushed to `origin/main`.
 
 ## Vercel redeploy expected
 
