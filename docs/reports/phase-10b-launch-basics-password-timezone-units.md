@@ -229,11 +229,11 @@ The Help page still references mL in its copy. A follow-up task could add a note
 
 ## Commit hash
 
-TBD — set after commit.
+`bb20617`
 
 ## Main synced with origin/main
 
-Yes — will be pushed to `origin/main` after commit.
+Yes — pushed to `origin/main`.
 
 ## Vercel redeploy expected
 
