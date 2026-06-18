@@ -144,4 +144,14 @@ describe('parseAmountToMl', () => {
     expect(Number.isInteger(stored)).toBe(true)
     expect(stored).toBeGreaterThan(0)
   })
+
+  it('no-drift: displayed fl oz from a given mL re-parses to the same display', () => {
+    for (const ml of [0, 30, 60, 89, 90, 100, 120, 150, 180, 240, 300]) {
+      const displayed = mlToFlOz(ml).toFixed(1)
+      const originalFlOz = parseFloat(displayed)
+      const reconverted = Math.round(flOzToMl(originalFlOz))
+      const redisplayed = mlToFlOz(reconverted).toFixed(1)
+      expect(redisplayed).toBe(displayed)
+    }
+  })
 })

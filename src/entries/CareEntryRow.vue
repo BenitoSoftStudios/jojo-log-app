@@ -279,6 +279,10 @@ function onMlBlur(e) {
   } else if (isFlOz.value) {
     const n = parseFloat(raw)
     if (!isNaN(n)) {
+      const originalFlOz = props.entry.amountMl != null
+        ? parseFloat(mlToFlOz(props.entry.amountMl).toFixed(1))
+        : null
+      if (n === originalFlOz) return
       const mlValue = Math.round(flOzToMl(n))
       if (mlValue !== props.entry.amountMl) {
         emitUpdate({ amountMl: mlValue })

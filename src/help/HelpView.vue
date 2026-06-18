@@ -37,7 +37,8 @@
       <h2 class="section-heading">Reading the ledger</h2>
       <ul class="help-list text-sm">
         <li>Entries are grouped by day.</li>
-        <li>Each row shows time, feed amount (mL), diaper code, and any extras.</li>
+        <li>Each row shows time, feed amount, diaper code, and any extras.</li>
+        <li>Bottle amounts are stored in mL. If your family uses fl oz, the app converts display and entry amounts for you. You can change this in Settings.</li>
         <li>Care-only entries like medication or Tummy Time use 0 mL and - to stay complete. Blank amount or blank diaper means the entry is still incomplete.</li>
         <li>The <strong>usual bottle</strong> reminder shown on each week row is a parent-entered reference. It is not advice and does not fill in entries automatically.</li>
       </ul>
@@ -72,7 +73,7 @@
       <dl class="legend-list">
         <div class="legend-row">
           <dt class="legend-key">mL</dt>
-          <dd class="legend-val">Feed amount in millilitres. Blank means not recorded.</dd>
+          <dd class="legend-val">Feed amount in millilitres (or fl oz if selected in Settings). Blank means not recorded.</dd>
         </div>
         <div class="legend-row">
           <dt class="legend-key diaper-w">W</dt>
