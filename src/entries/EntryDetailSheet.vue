@@ -17,7 +17,7 @@
         </div>
         <div class="detail-row">
           <span class="detail-label text-soft text-sm">Amount</span>
-          <span>{{ entry.amountMl ?? '—' }} mL</span>
+          <span>{{ entry.amountMl != null ? formatAmount(entry.amountMl, unitPreference) : '—' }}</span>
         </div>
         <div class="detail-row">
           <span class="detail-label text-soft text-sm">Diaper</span>
@@ -106,6 +106,8 @@ import { ref, computed, watch } from 'vue'
 import AppSheet  from '@/ui/AppSheet.vue'
 import AppButton         from '@/ui/AppButton.vue'
 import { hasTummyTimeSession, formatTummyDuration } from '@/utils/entryUtils.js'
+import { unitPreference } from '@/families/useFamily.js'
+import { formatAmount } from '@/utils/unitConverter.js'
 
 const props = defineProps({
   modelValue: { type: Boolean, required: true },

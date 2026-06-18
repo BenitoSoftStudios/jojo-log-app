@@ -29,8 +29,8 @@
       <!-- Summary stat cards -->
       <div v-if="!sinceBirthMissingBirthdate && dailyStats.length > 0" class="stats-row">
         <div class="stat-card">
-          <div class="stat-value">{{ avgMl }}</div>
-          <div class="stat-unit">mL/day</div>
+          <div class="stat-value">{{ avgDisplay }}</div>
+          <div class="stat-unit">{{ unitPreference === 'floz' ? 'fl oz' : 'mL' }}/day</div>
         </div>
         <div class="stat-card">
           <div class="stat-value">{{ avgFeeds }}</div>
@@ -69,7 +69,7 @@
           <div class="chart-header">
             <h2 class="chart-title">{{ volumeTitle }}</h2>
             <span v-if="latestRolling !== null && !useMonthlyView" class="text-faint text-xs">
-              7-day avg {{ latestRolling }} mL
+              7-day avg {{ formatAmount(latestRolling, unitPreference) }}
             </span>
           </div>
 
@@ -77,7 +77,7 @@
           <div v-if="displayRow" class="day-callout">
             <span class="day-callout-date text-sm">{{ displayRowLabel(displayRow) }}</span>
             <span class="day-callout-sep text-faint text-xs">·</span>
-            <span class="day-callout-val text-sm">{{ displayRow.totalMl }} mL</span>
+            <span class="day-callout-val text-sm">{{ formatAmount(displayRow.totalMl, unitPreference) }}</span>
             <span class="day-callout-sep text-faint text-xs">·</span>
             <span class="day-callout-val text-sm">{{ displayRow.feedCount }} feeds</span>
             <template v-if="displayRow.tummyCount > 0">
@@ -92,7 +92,7 @@
               <!-- Y-axis: line + 0 label + max label -->
               <line :x1="LEFT_AXIS_W" :x2="LEFT_AXIS_W" y1="20" :y2="ML_FLOOR" class="chart-yaxis" />
               <text :x="LEFT_AXIS_W - 4" :y="ML_FLOOR - 2" text-anchor="end" class="chart-axis-label">0</text>
-              <text v-if="niceChartMlMax > 0" :x="LEFT_AXIS_W - 4" y="22" text-anchor="end" class="chart-axis-label">{{ formatAxisLabel(niceChartMlMax, 'ml') }}</text>
+              <text v-if="niceChartMlMax > 0" :x="LEFT_AXIS_W - 4" y="22" text-anchor="end" class="chart-axis-label">{{ mlAxisLabel(niceChartMlMax) }}</text>
               <!-- Midpoint gridline -->
               <line v-if="niceChartMlMax > 0" :x1="LEFT_AXIS_W" :x2="svgWidth" :y1="ML_FLOOR - ML_MAX_H / 2" :y2="ML_FLOOR - ML_MAX_H / 2" class="chart-gridline" />
 
@@ -238,7 +238,7 @@
           <dl class="notable-list">
             <div v-if="highestMlDay" class="notable-row">
               <dt class="notable-label text-faint text-sm">Highest volume</dt>
-              <dd class="notable-val text-sm">{{ highestMlDay.totalMl }} mL — {{ formatDayLabel(highestMlDay.date) }}</dd>
+              <dd class="notable-val text-sm">{{ formatAmount(highestMlDay.totalMl, unitPreference) }} — {{ formatDayLabel(highestMlDay.date) }}</dd>
             </div>
             <div v-if="mostFeedsDay" class="notable-row">
               <dt class="notable-label text-faint text-sm">Most feeds</dt>
@@ -263,7 +263,9 @@ import AppCard   from '@/ui/AppCard.vue'
 import { useEntries }         from '@/entries/useEntries.js'
 import { useBabies }          from '@/babies/useBabies.js'
 import { useFamily }          from '@/families/useFamily.js'
+import { unitPreference }     from '@/families/useFamily.js'
 import { getTodayInTimezone } from '@/utils/dateUtils.js'
+import { formatAmount, mlToFlOz } from '@/utils/unitConverter.js'
 import {
   computeDailyStats,
   sevenDayRollingAvg,
@@ -376,6 +378,12 @@ const avgMl = computed(() => {
   if (n === 0) return 0
   return Math.round(daysWithData.value.reduce((s, d) => s + d.totalMl, 0) / n)
 })
+const avgDisplay = computed(() => {
+  if (unitPreference.value === 'floz') {
+    return mlToFlOz(avgMl.value).toFixed(1)
+  }
+  return avgMl.value
+})
 const avgFeeds = computed(() => {
   const n = daysWithData.value.length
   if (n === 0) return 0
@@ -487,6 +495,14 @@ const avgLinePoints = computed(() => {
 })
 
 // ── Chart label helpers ─────────────────────────────────────────────────────
+
+function mlAxisLabel(value) {
+  if (unitPreference.value === 'floz') {
+    const floz = mlToFlOz(value)
+    return floz >= 100 ? Math.round(floz) : floz.toFixed(floz >= 10 ? 0 : 1)
+  }
+  return formatAxisLabel(value, 'ml')
+}
 
 const volumeTitle = computed(() => useMonthlyView.value ? 'Monthly volume' : 'Daily volume')
 const feedsTitle  = computed(() => useMonthlyView.value ? 'Monthly feeds'  : 'Daily feeds')

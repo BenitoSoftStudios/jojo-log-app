@@ -52,7 +52,7 @@
           v-model="pendingTimezone"
           class="tz-select"
         >
-          <option v-for="tz in TIMEZONES" :key="tz.value" :value="tz.value">
+          <option v-for="tz in effectiveTimezones" :key="tz.value" :value="tz.value">
             {{ tz.label }}
           </option>
         </select>
@@ -66,6 +66,32 @@
         :disabled="tzSaving || pendingTimezone === currentTimezone"
         @click="saveTimezone"
       >{{ tzSaving ? 'Saving…' : 'Save timezone' }}</AppButton>
+
+      <hr class="settings-divider" />
+
+      <p class="field-sub-label">Bottle units</p>
+      <p class="text-soft text-sm field-note">
+        Entries are stored in mL. You can display bottles in either unit.
+      </p>
+      <div class="unit-row">
+        <select
+          v-if="isOwner"
+          v-model="pendingUnit"
+          class="tz-select"
+        >
+          <option value="ml">mL</option>
+          <option value="floz">fl oz</option>
+        </select>
+        <p v-else class="text-soft text-sm field-readonly">{{ currentUnit === 'floz' ? 'fl oz' : 'mL' }}</p>
+      </div>
+      <p v-if="unitError"   class="field-error text-sm" role="alert">{{ unitError }}</p>
+      <p v-if="unitSuccess" class="field-success text-sm" role="status">Saved.</p>
+      <AppButton
+        v-if="isOwner"
+        class="save-btn"
+        :disabled="unitSaving || pendingUnit === currentUnit"
+        @click="saveUnit"
+      >{{ unitSaving ? 'Saving…' : 'Save bottle units' }}</AppButton>
 
     </AppCard>
 
@@ -138,7 +164,7 @@ const TIMEZONES = [
 const TIPS_HIDDEN_KEY    = 'jojo_tips_hidden'
 const TIPS_DISMISSED_KEY = 'jojo_tips_dismissed'
 
-const { familyId, familyTimezone, isOwner, refreshFamily } = useFamily()
+const { familyId, familyTimezone, unitPreference, isOwner, refreshFamily } = useFamily()
 
 // ── Timezone ──────────────────────────────────────────────────────────────────
 
@@ -146,6 +172,12 @@ const currentTimezone = computed(() => familyTimezone.value)
 const displayTimezone = computed(() => {
   const match = TIMEZONES.find(t => t.value === currentTimezone.value)
   return match ? match.label : currentTimezone.value
+})
+
+const effectiveTimezones = computed(() => {
+  const current = currentTimezone.value
+  if (!current || TIMEZONES.some(t => t.value === current)) return TIMEZONES
+  return [{ value: current, label: current }, ...TIMEZONES]
 })
 
 const pendingTimezone = ref(currentTimezone.value)
@@ -171,6 +203,35 @@ async function saveTimezone() {
       : 'Save failed. Please try again.'
   } finally {
     tzSaving.value = false
+  }
+}
+
+// ── Bottle units ──────────────────────────────────────────────────────────────
+
+const currentUnit  = computed(() => unitPreference.value)
+const pendingUnit  = ref(currentUnit.value)
+const unitSaving   = ref(false)
+const unitError    = ref('')
+const unitSuccess  = ref(false)
+
+watch(currentUnit, (u) => { pendingUnit.value = u }, { immediate: true })
+
+async function saveUnit() {
+  if (!familyId.value) return
+  unitSaving.value  = true
+  unitError.value   = ''
+  unitSuccess.value = false
+  try {
+    await updateFamily(familyId.value, { unitPreference: pendingUnit.value })
+    await refreshFamily()
+    unitSuccess.value = true
+  } catch (e) {
+    console.error('[SettingsView] updateFamily (unitPreference) failed | code:', e.code, '| message:', e.message, e)
+    unitError.value = e?.code === 'permission-denied'
+      ? 'Only owners can change bottle units.'
+      : 'Save failed. Please try again.'
+  } finally {
+    unitSaving.value = false
   }
 }
 
@@ -296,6 +357,7 @@ function resetTips() {
 .field-success  { color: var(--color-mint);  margin-bottom: var(--space-2); }
 
 .save-btn { margin-top: var(--space-3); }
+.unit-row { margin: var(--space-2) 0 var(--space-3); }
 
 .settings-divider {
   border: none;

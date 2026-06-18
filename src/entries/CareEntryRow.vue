@@ -23,21 +23,21 @@
         @blur="onTimeBlur"
       />
 
-      <!-- Amount mL -->
+      <!-- Amount -->
       <div class="entry-row__ml-wrap">
         <input
           class="entry-row__ml"
           :class="{ 'entry-row__ml--null': entry.amountMl === null }"
           type="number"
           min="0"
-          step="1"
-          inputmode="numeric"
+          :step="isFlOz ? '0.1' : '1'"
+          :inputmode="isFlOz ? 'decimal' : 'numeric'"
           :value="mlDisplay"
           placeholder="—"
           @blur="onMlBlur"
           @keydown.enter.prevent="$event.target.blur()"
         />
-        <span class="entry-row__ml-unit text-faint text-xs">mL</span>
+        <span class="entry-row__ml-unit text-faint text-xs">{{ unitLabel }}</span>
       </div>
 
       <!-- Diaper selector — four visible tap buttons -->
@@ -193,6 +193,8 @@
 import { computed, ref, watch, nextTick } from 'vue'
 import AppSheet from '@/ui/AppSheet.vue'
 import { isIncomplete, hasTummyTimeSession, formatTummyDuration } from '@/utils/entryUtils.js'
+import { unitPreference } from '@/families/useFamily.js'
+import { mlToFlOz, flOzToMl } from '@/utils/unitConverter.js'
 
 const props = defineProps({
   entry: { type: Object, required: true },
@@ -216,7 +218,14 @@ const medNoteCue = computed(() => {
   if (!n) return null
   return n.length > 10 ? n.slice(0, 10) + '…' : n
 })
-const mlDisplay = computed(() => props.entry.amountMl ?? '')
+const isFlOz    = computed(() => unitPreference.value === 'floz')
+const unitLabel = computed(() => isFlOz.value ? 'fl oz' : 'mL')
+const mlDisplay = computed(() => {
+  const ml = props.entry.amountMl
+  if (ml === null || ml === undefined) return ''
+  if (isFlOz.value) return mlToFlOz(ml).toFixed(1)
+  return ml
+})
 
 // ── Save feedback ──────────────────────────────────────────────────────────
 
@@ -266,6 +275,14 @@ function onMlBlur(e) {
   if (raw === '') {
     if (props.entry.amountMl !== null) {
       emitUpdate({ amountMl: null })
+    }
+  } else if (isFlOz.value) {
+    const n = parseFloat(raw)
+    if (!isNaN(n)) {
+      const mlValue = Math.round(flOzToMl(n))
+      if (mlValue !== props.entry.amountMl) {
+        emitUpdate({ amountMl: mlValue })
+      }
     }
   } else {
     const n = parseInt(raw, 10)

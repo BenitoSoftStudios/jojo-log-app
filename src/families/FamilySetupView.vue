@@ -137,8 +137,10 @@ async function handleSubmit() {
 
   try {
     // 1. Create family document
+    let detectedTz = 'America/Toronto'
+    try { detectedTz = Intl.DateTimeFormat().resolvedOptions().timeZone || detectedTz } catch {}
     const fId = await createFamily(
-      { name: familyName.value.trim(), timezone: 'America/Toronto', unitPreference: 'ml' },
+      { name: familyName.value.trim(), timezone: detectedTz, unitPreference: 'ml' },
       user.uid
     )
 

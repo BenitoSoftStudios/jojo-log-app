@@ -56,10 +56,21 @@
         </AppButton>
       </form>
 
+      <button
+        v-if="mode === 'signin'"
+        class="forgot-link text-sm"
+        type="button"
+        :disabled="resetLoading"
+        @click="handleForgotPassword"
+      >{{ resetLoading ? 'Sending…' : 'Forgot password?' }}</button>
+
+      <p v-if="resetMsg" class="reset-msg text-sm" role="status">{{ resetMsg }}</p>
+      <p v-if="resetError" class="login-error text-sm" role="alert">{{ resetError }}</p>
+
       <p v-if="mode === 'signup'" class="login-note text-soft text-sm">
         After creating your account you'll set up your display label and family profile.
       </p>
-      <p v-else class="login-note text-soft text-sm">
+      <p v-else-if="!resetMsg" class="login-note text-soft text-sm">
         Need to join an existing family? Ask an Owner to invite you.
       </p>
     </div>
@@ -73,7 +84,7 @@ import AppButton from '@/ui/AppButton.vue'
 import { useAuth } from '@/auth/useAuth.js'
 
 const router = useRouter()
-const { signIn, signUp } = useAuth()
+const { signIn, signUp, sendPasswordReset } = useAuth()
 
 const mode          = ref('signin')
 const email         = ref('')
@@ -82,6 +93,9 @@ const emailInput    = ref(null)
 const passwordInput = ref(null)
 const loading       = ref(false)
 const error         = ref('')
+const resetLoading  = ref(false)
+const resetMsg      = ref('')
+const resetError    = ref('')
 
 async function handleSubmit() {
   error.value   = ''
@@ -103,6 +117,25 @@ async function handleSubmit() {
   } finally {
     loading.value = false
   }
+}
+
+async function handleForgotPassword() {
+  const emailVal = (emailInput.value?.value ?? email.value).trim()
+  if (!emailVal) {
+    resetError.value = 'Enter your email first, then try again.'
+    return
+  }
+  resetLoading.value = true
+  resetMsg.value     = ''
+  resetError.value   = ''
+  error.value        = ''
+  try {
+    await sendPasswordReset(emailVal)
+  } catch (e) {
+    console.error('[LoginView] sendPasswordReset error | code:', e.code, '| message:', e.message, e)
+  }
+  resetMsg.value     = 'If an account exists for that email, a reset link has been sent.'
+  resetLoading.value = false
 }
 
 function friendlyError(code) {
@@ -217,5 +250,27 @@ function friendlyError(code) {
 
 .login-note {
   text-align: center;
+}
+
+.forgot-link {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-family);
+  color: var(--color-text-soft);
+  text-align: center;
+  padding: var(--space-1) 0;
+  -webkit-tap-highlight-color: transparent;
+}
+.forgot-link:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.reset-msg {
+  text-align: center;
+  color: var(--color-mint);
 }
 </style>

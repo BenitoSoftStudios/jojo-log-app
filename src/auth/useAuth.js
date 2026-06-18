@@ -6,6 +6,7 @@ import { auth } from '@/app/firebase.js'
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
+  sendPasswordResetEmail,
   signOut as firebaseSignOut,
   onAuthStateChanged
 } from 'firebase/auth'
@@ -38,5 +39,9 @@ export function useAuth() {
     await firebaseSignOut(auth)
   }
 
-  return { currentUser, authReady, isSignedIn, signUp, signIn, signOut }
+  async function sendPasswordReset(email) {
+    await sendPasswordResetEmail(auth, email)
+  }
+
+  return { currentUser, authReady, isSignedIn, signUp, signIn, signOut, sendPasswordReset }
 }

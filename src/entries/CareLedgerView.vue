@@ -68,15 +68,15 @@
             </span>
           </div>
           <div class="today-panel__stats">
-            <span class="today-panel__stat-primary">{{ stats.todayMl }} mL today</span>
+            <span class="today-panel__stat-primary">{{ formatAmount(stats.todayMl, unitPreference) }} today</span>
             <span class="today-panel__sep" aria-hidden="true"> · </span>
             <span class="today-panel__stat">{{ stats.feedCount }} {{ stats.feedCount === 1 ? 'feed' : 'feeds' }}</span>
           </div>
           <div v-if="lastEntryLine" class="today-panel__last text-faint">{{ lastEntryLine }}</div>
           <div class="today-panel__secondary text-faint">
-            <span>{{ stats.sevenDayMl }} mL · 7 days</span>
+            <span>{{ formatAmount(stats.sevenDayMl, unitPreference) }} · 7 days</span>
             <span class="today-panel__sep-dot" aria-hidden="true"> · </span>
-            <span>{{ stats.monthMl }} mL · this month</span>
+            <span>{{ formatAmount(stats.monthMl, unitPreference) }} · this month</span>
           </div>
         </div>
 
@@ -280,6 +280,8 @@ import { todayString, getTodayInTimezone, getCurrentHHMMInTimezone } from '@/uti
 import { getWeekStartForDate } from '@/utils/weekUtils.js'
 import { generateCsv, downloadCsv } from '@/utils/csvExporter.js'
 import { useWeeklySettings } from '@/entries/useWeeklySettings.js'
+import { unitPreference } from '@/families/useFamily.js'
+import { formatAmount } from '@/utils/unitConverter.js'
 
 const router = useRouter()
 
@@ -444,7 +446,7 @@ const lastEntryLine = computed(() => {
   const e = lastEntry.value
   if (!e) return null
   const parts = [e.entryTime]
-  if (typeof e.amountMl === 'number') parts.push(e.amountMl + ' mL')
+  if (typeof e.amountMl === 'number') parts.push(formatAmount(e.amountMl, unitPreference.value))
   if (e.diaper && e.diaper !== '-') parts.push(e.diaper)
   return 'Last logged ' + parts.join(', ')
 })

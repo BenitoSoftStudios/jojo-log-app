@@ -13,6 +13,7 @@ const _error         = ref('')
 export const family          = readonly(_family)
 export const currentMember   = readonly(_currentMember)
 export const familyTimezone  = computed(() => _family.value?.timezone ?? 'America/Toronto')
+export const unitPreference  = computed(() => _family.value?.unitPreference ?? 'ml')
 
 export function useFamily() {
   const familyId              = computed(() => _family.value?.id ?? null)
@@ -82,6 +83,7 @@ export function useFamily() {
     currentMember,
     familyId,
     familyTimezone,
+    unitPreference,
     isOwner,
     hasDisplayLabel,
     loading: readonly(_loading),
