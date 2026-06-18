@@ -163,11 +163,11 @@ After the no-drift fix, an unchanged fl oz value no longer causes drift. However
 
 ## Commit hash
 
-TBD -- set after commit.
+`5f8adad`
 
 ## Main synced with origin/main
 
-Yes -- will be pushed to `origin/main` after commit.
+Yes -- pushed to `origin/main`.
 
 ## Vercel redeploy expected
 
